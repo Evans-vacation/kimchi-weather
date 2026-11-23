@@ -53,7 +53,7 @@ class MainActivity : Activity() {
         web.settings.domStorageEnabled = true
         web.settings.setGeolocationEnabled(true)
         web.addJavascriptInterface(Bridge(), "Android")
-        // The page handles long-press itself (hold 4 s to reorder cards): no text selection or system buzz.
+        // The page handles long-press itself (hold 2 s to reorder cards): no text selection or system buzz.
         web.setOnLongClickListener { true }
         web.isLongClickable = false
         web.isHapticFeedbackEnabled = false
