@@ -94,6 +94,30 @@ button,input{font:inherit;color:inherit}
 .card.lift .mv{display:flex}
 .mv button{min-width:44px;height:40px;border-radius:20px;border:1px solid rgba(255,255,255,.5);background:rgba(10,20,40,.55);color:#fff;font:inherit;font-size:15px;cursor:pointer;padding:0 12px}
 .mv button:focus-visible{outline:2px solid #fff}
+.cmp{margin-top:4px;font-size:15px;font-weight:600}
+.cmp .dn{color:#9fd6ff}.cmp .up{color:#ffc2a8}
+.sheet{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;padding:12px}
+.sheet[hidden]{display:none}
+.scard{width:min(520px,100%);background:#152238;border-radius:22px;padding:20px 18px 16px;text-shadow:none;max-height:90vh;overflow:auto}
+.scard h3{margin:0 0 6px;font-size:20px}
+.tg{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.tg span{flex:1}.tg b{display:block;font-size:16px}.tg small{display:block;color:var(--soft);font-size:13px;margin-top:2px}
+.tg input{position:absolute;opacity:0;width:1px;height:1px}
+.tg i{flex:none;width:50px;height:30px;border-radius:15px;background:rgba(255,255,255,.2);position:relative;transition:background .2s}
+.tg i::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s}
+.tg input:checked+i{background:#3d8bff}.tg input:checked+i::after{transform:translateX(20px)}
+.tg input:focus-visible+i{outline:2px solid #fff;outline-offset:2px}
+.tm{display:flex;justify-content:space-between;align-items:center;padding:12px 0;font-size:15px}
+.tm input{font:inherit;font-size:16px;color:#fff;background:rgba(255,255,255,.1);border:1px solid var(--line);border-radius:10px;padding:6px 10px;min-height:44px;color-scheme:dark}
+.sbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.sbtn button,.sclose{font:inherit;font-size:15px;min-height:46px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.1);color:#fff;cursor:pointer}
+.sclose{width:100%;margin-top:10px;background:#3d8bff;border-color:#3d8bff}
+.snote{font-size:13px;color:var(--soft);margin:10px 0 0;min-height:1em}
+.nmock{position:fixed;left:50%;top:10px;width:min(440px,calc(100% - 20px));transform:translate(-50%,-140%);z-index:40;background:rgba(245,247,250,.97);color:#111;text-shadow:none;border-radius:20px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.35);transition:transform .35s ease;display:flex;gap:10px}
+.nmock.on{transform:translate(-50%,0)}
+.nmock .ni{flex:none;width:34px;height:34px;border-radius:10px;background:linear-gradient(#1f6fc5,#5aa9e6);display:grid;place-items:center}
+.nmock .nb{flex:1;min-width:0}.nmock .nh{font-size:12px;color:#666}.nmock b{display:block;font-size:15px;margin-top:1px}
+.nmock p{margin:2px 0 0;font-size:14px;line-height:1.4;white-space:pre-line}
 .hint{margin:14px 0 0;font-size:13px;color:var(--soft);text-align:center}
 .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:rgba(10,20,40,.85);color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:20}
 .toast.on{opacity:1;transform:translate(-50%,0)}
@@ -137,6 +161,9 @@ button,input{font:inherit;color:inherit}
     <button class="btn ico" id="loc" title="내 위치" aria-label="내 위치로 보기">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle class="dot" cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
     </button>
+    <button class="btn ico" id="bell" title="알림 설정" aria-label="알림 설정">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></svg>
+    </button>
     <button class="btn ico" id="unit" title="단위 변경" aria-label="섭씨/화씨 바꾸기">°C</button>
   </div>
   <div class="note" id="note">실시간 날씨를 불러오지 못해 예시 데이터를 보여주고 있어요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.</div>
@@ -147,6 +174,7 @@ button,input{font:inherit;color:inherit}
       <div class="temp" id="temp">--°</div>
       <div class="cond" id="cond">&nbsp;</div>
       <div class="hl" id="hl">&nbsp;</div>
+      <div class="cmp" id="cmp"></div>
     </div>
     <div class="big" id="big"></div>
   </section>
@@ -166,6 +194,18 @@ button,input{font:inherit;color:inherit}
   </div>
   <p class="hint">항목을 2초 동안 꾹 누르고 있으면 위아래로 옮길 수 있어요.</p>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="nmock" id="nmock" aria-live="polite"></div>
+  <div class="sheet" id="sheet" hidden>
+    <div class="scard" role="dialog" aria-modal="true" aria-labelledby="stitle">
+      <h3 id="stitle">알림</h3>
+      <label class="tg"><span><b>비·눈 시작 알림</b><small>1~2시간 안에 비나 눈이 시작될 것 같으면 알려 드려요. 밤 11시~아침 6시에는 울리지 않아요.</small></span><input type="checkbox" id="nRain"><i></i></label>
+      <label class="tg"><span><b>아침 날씨 브리핑</b><small>매일 정한 시간에 오늘 기온, 비 소식, 미세먼지, 옷차림을 한 번에 알려 드려요.</small></span><input type="checkbox" id="nBrief"><i></i></label>
+      <label class="tm">브리핑 시간 <input type="time" id="nTime" value="07:00"></label>
+      <div class="sbtn"><button id="tRain">비 알림 미리보기</button><button id="tBrief">브리핑 미리보기</button></div>
+      <p class="snote" id="nNote"></p>
+      <button class="sclose" id="sClose">닫기</button>
+    </div>
+  </div>
   <p class="foot" id="foot">날씨 데이터: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a></p>
 </div>
 
@@ -390,7 +430,7 @@ function fcUrl(p){
     '&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl,cloud_cover' +
     '&hourly=temperature_2m,precipitation_probability,weather_code,is_day' +
     '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max' +
-    '&wind_speed_unit=ms&timezone=auto&forecast_days=7';
+    '&wind_speed_unit=ms&timezone=auto&forecast_days=7&past_hours=24';
 }
 const aqUrl = p => `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.lat}&longitude=${p.lon}&current=pm10,pm2_5&hourly=pm10,pm2_5&forecast_days=2&timezone=auto`;
 
@@ -414,7 +454,13 @@ function demoData(){
     dl.precipitation_probability_max.push(Math.max(...h.precipitation_probability.slice(i*24, i*24+24)));
     dl.sunrise.push(s + 'T07:21'); dl.sunset.push(s + 'T17:15'); dl.uv_index_max.push(2.5);
   }
-  const idx = now.getHours();
+  // yesterday, 2° warmer, so "어제와 비교" shows in the demo too
+  const y = new Date(base.getTime() - 864e5), todayT = h.temperature_2m.slice(0, 24);
+  for (let hr = 23; hr >= 0; hr--){
+    h.time.unshift(`${iso(y)}T${pad(hr)}:00`); h.temperature_2m.unshift(todayT[hr] + 2);
+    h.weather_code.unshift(2); h.is_day.unshift(hr >= 7 && hr < 17 ? 1 : 0); h.precipitation_probability.unshift(0);
+  }
+  const idx = 24 + now.getHours();
   return { current:{ time:h.time[idx], temperature_2m:h.temperature_2m[idx], relative_humidity_2m:58, apparent_temperature:h.temperature_2m[idx]-2.5,
     is_day:h.is_day[idx], precipitation:0, weather_code:codes[0], wind_speed_10m:3.2, wind_direction_10m:315, pressure_msl:1021 }, hourly:h, daily:dl };
 }
@@ -448,6 +494,7 @@ function render(){
   $('#cond').textContent = label;
   $('#hl').textContent = `최고 ${deg(d.daily.temperature_2m_max[0])} · 최저 ${deg(d.daily.temperature_2m_min[0])} · 체감 ${deg(c.apparent_temperature)}`;
   $('#big').innerHTML = icon(cat, day);
+  $('#cmp').innerHTML = compareText(d);
   const sk = cat + (day ? 'd' : 'n');
   if (state.sceneKey !== sk){ state.sceneKey = sk; $('#scene').innerHTML = sceneSVG(cat, !day, true); }
   document.title = `${p.name} ${deg(c.temperature_2m)} ${label}`;
@@ -722,6 +769,103 @@ $('#loc').addEventListener('click', () => {
     () => { setLoc('err'); toast('위치 권한을 허용해 주세요'); setTimeout(() => setLoc(''), 2500); },
     {timeout: 10000}
   );
+});
+
+/* ---------- 어제와 비교 ---------- */
+function yesterdayDiff(d){
+  const h = d.hourly; if (!h || !h.time) return null;
+  const i = h.time.findIndex(t => t.slice(0,13) === String(d.current.time).slice(0,13));
+  if (i < 24) return null;
+  const y = h.temperature_2m[i - 24]; if (y == null) return null;
+  return d.current.temperature_2m - y;
+}
+function compareText(d){
+  const diff = yesterdayDiff(d); if (diff == null) return '';
+  const n = Math.round(state.unit === 'C' ? Math.abs(diff) : Math.abs(diff) * 9 / 5);
+  if (n < 1) return '어제와 비슷해요';
+  return diff < 0 ? `어제보다 <span class="dn">${n}° 낮아요</span>` : `어제보다 <span class="up">${n}° 높아요</span>`;
+}
+
+/* ---------- 알림 (same wording as the phone notifications in Notify.kt) ---------- */
+const isWet = c => (c >= 51 && c <= 67) || (c >= 71 && c <= 77) || (c >= 80 && c <= 86) || c >= 95;
+const isSnow = c => (c >= 71 && c <= 77) || c === 85 || c === 86;
+function hourLabel(t){ const h = Number(String(t).slice(11,13)); return (h < 12 ? '오전 ' : '오후 ') + (h % 12 === 0 ? 12 : h % 12) + '시'; }
+function upcoming(d, maxH){
+  const h = d.hourly; let s = h.time.findIndex(t => t.slice(0,13) === String(d.current.time).slice(0,13)); if (s < 0) s = 0;
+  for (let k = 1; k <= maxH && s + k < h.time.length; k++){
+    const i = s + k;
+    if (isWet(h.weather_code[i]) && (h.precipitation_probability[i] ?? 0) >= 50) return {k, time:h.time[i], code:h.weather_code[i], pop:h.precipitation_probability[i]};
+  }
+  return null;
+}
+function adviceText(d){
+  const c = d.current, dl = d.daily, u = upcoming(d, 12) , step = dustStepJS();
+  const coming = c.weather_code >= 95 || (u && u.code >= 95) ? ['천둥번개 조심,','천둥번개 조심하세요']
+    : (u && (u.code === 75 || u.code === 86)) ? ['겨울타이어 챙기고','겨울타이어 챙기세요']
+    : (u && isSnow(u.code)) ? ['빙판길 조심,','빙판길 조심하세요']
+    : (u || isWet(c.weather_code)) ? ['우산 챙기고','우산 꼭 챙기세요']
+    : step != null && step >= 6 ? ['마스크 쓰고','마스크 꼭 쓰세요'] : null;
+  const f = c.apparent_temperature, mx = dl.temperature_2m_max[0], mn = dl.temperature_2m_min[0];
+  const wear = f <= -10 ? '패딩·장갑 꼭 챙겨요' : f <= -3 ? '패딩 입어요' : f <= 5 ? '두꺼운 외투 입어요' : mx >= 33 ? '물 자주 마셔요'
+    : mx >= 28 ? '시원하게 입어요' : mx - mn >= 10 ? '겉옷 챙겨요' : f <= 12 ? '가벼운 겉옷 챙겨요' : null;
+  return coming && wear ? coming[0] + ' ' + wear : coming ? coming[1] : wear || '외출하기 좋은 날이에요';
+}
+function dustStepJS(){
+  const c = state.aq && state.aq.current; if (!c) return null;
+  const st = (v, cuts) => v == null ? -1 : cuts.filter(x => v > x).length;
+  const a = st(c.pm10, [10,20,30,45,60,80,115,150]), b = st(c.pm2_5, [5,10,15,22,29,35,55,75]);
+  return Math.max(a, b) < 0 ? null : Math.max(a, b);
+}
+function rainNotice(d){
+  const u = upcoming(d, 2); if (!u) return null;
+  const what = isSnow(u.code) ? '눈' : '비';
+  return {title: what === '눈' ? '곧 눈이 와요 ❄️' : '곧 비가 와요 ☔',
+          body: `${state.place.name}에 ${hourLabel(u.time)}쯤부터 ${what} 소식이 있어요 (확률 ${u.pop}%). ${what === '눈' ? '미끄럼 조심하세요.' : '우산 챙기세요.'}`};
+}
+function briefNotice(d){
+  const c = d.current, dl = d.daily, [label] = codeInfo(c.weather_code), u = upcoming(d, 23 - Number(String(c.time).slice(11,13)));
+  const diff = yesterdayDiff(d), cmp = diff == null ? '' : Math.abs(diff) < 1 ? ' · 어제와 비슷' : ` · 어제보다 ${Math.round(Math.abs(diff))}° ${diff < 0 ? '낮음' : '높음'}`;
+  const step = dustStepJS(), dw = step == null ? '' : ['아주 좋음','좋음','좋음','보통','보통','보통','나쁨','나쁨','위험'][step];
+  const lines = [
+    `${label} ${Math.round(c.temperature_2m)}° · 최저 ${Math.round(dl.temperature_2m_min[0])}° / 최고 ${Math.round(dl.temperature_2m_max[0])}°${cmp}`,
+    u ? `${hourLabel(u.time)}쯤 ${isSnow(u.code) ? '눈' : '비'} 소식 (확률 ${u.pop}%)` : '오늘은 비 소식이 없어요',
+    dw ? `미세먼지 ${dw}` : '',
+    adviceText(d)
+  ].filter(Boolean);
+  return {title: `오늘의 날씨 · ${state.place.name}`, body: lines.join('\n')};
+}
+function mockNotify(n){
+  const m = $('#nmock');
+  m.innerHTML = `<div class="ni">${icon('partly', true).replace('<svg', '<svg width="26" height="26"')}</div><div class="nb"><div class="nh">날씨 · 지금</div><b>${esc(n.title)}</b><p>${esc(n.body)}</p></div>`;
+  m.classList.add('on'); clearTimeout(mockNotify.t); mockNotify.t = setTimeout(() => m.classList.remove('on'), 6000);
+}
+const hasNative = () => !!(window.Android && window.Android.getNotify);
+function loadNotify(){
+  let v = null;
+  try{ v = hasNative() ? JSON.parse(window.Android.getNotify()) : store.get('notify', null); }catch(e){}
+  v = Object.assign({rain:false, brief:false, time:'07:00'}, v || {});
+  $('#nRain').checked = v.rain; $('#nBrief').checked = v.brief; $('#nTime').value = v.time;
+  $('#nNote').textContent = hasNative() ? (v.permission === false ? '알림 권한이 꺼져 있어요. 켜면 알림이 와요.' : '') : '미리보기 화면에서는 알림 모양만 보여 드려요. 폰 앱에서는 실제로 알림이 와요.';
+}
+function saveNotify(){
+  const v = {rain:$('#nRain').checked, brief:$('#nBrief').checked, time:$('#nTime').value || '07:00'};
+  if (hasNative()){ try{ window.Android.setNotify(JSON.stringify(v)); }catch(e){} } else store.set('notify', v);
+  toast(v.rain || v.brief ? '알림을 설정했어요' : '알림을 껐어요');
+}
+$('#bell').addEventListener('click', () => { loadNotify(); $('#sheet').hidden = false; $('#sClose').focus(); });
+$('#sClose').addEventListener('click', () => { $('#sheet').hidden = true; $('#bell').focus(); });
+$('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') $('#sheet').hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden) $('#sheet').hidden = true; });
+['nRain','nBrief','nTime'].forEach(id => $('#' + id).addEventListener('change', saveNotify));
+$('#tRain').addEventListener('click', () => {
+  const d = state.data; if (!d) return;
+  const n = rainNotice(d) || {title:'곧 비가 와요 ☔', body:`${state.place.name}에 ${hourLabel('0000-00-00T' + String((new Date().getHours() + 1) % 24).padStart(2,'0'))}쯤부터 비 소식이 있어요 (확률 70%). 우산 챙기세요.\n※ 미리보기: 지금은 2시간 안에 비 소식이 없어서 예시로 보여 드려요.`};
+  if (hasNative()) { try{ window.Android.testNotify('rain', JSON.stringify(n)); }catch(e){} } else mockNotify(n);
+});
+$('#tBrief').addEventListener('click', () => {
+  const d = state.data; if (!d) return;
+  const n = briefNotice(d);
+  if (hasNative()) { try{ window.Android.testNotify('brief', JSON.stringify(n)); }catch(e){} } else mockNotify(n);
 });
 
 /* ---------- reorder cards: hold 2 s, then drag or use ▲▼ ---------- */

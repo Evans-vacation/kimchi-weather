@@ -50,6 +50,9 @@ class MainActivity : Activity() {
             }
         }
 
+        Notifier.channels(this)
+        Notifier.schedule(applicationContext)
+
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.settings.setGeolocationEnabled(true)
@@ -173,6 +176,37 @@ class MainActivity : Activity() {
     /** Called from the page: window.Android.setPlace(JSON.stringify(place)). */
     inner class Bridge {
         @JavascriptInterface
+        fun getNotify(): String = Notifier.settings(applicationContext).toString()
+
+        @JavascriptInterface
+        fun setNotify(json: String) {
+            try { Notifier.save(applicationContext, json) } catch (e: Exception) { return }
+            val o = try { JSONObject(json) } catch (e: Exception) { return }
+            if ((o.optBoolean("rain") || o.optBoolean("brief")) && !Notifier.canPost(applicationContext) &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+            ) {
+                runOnUiThread { requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIFY) }
+            }
+        }
+
+        /** "미리보기" buttons: post the text the page already built, right now. */
+        @JavascriptInterface
+        fun testNotify(kind: String, json: String) {
+            val ctx = applicationContext
+            if (!Notifier.canPost(ctx) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                runOnUiThread { requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIFY) }
+                return
+            }
+            val o = try { JSONObject(json) } catch (e: Exception) { return }
+            Notifier.post(
+                ctx,
+                if (kind == "rain") Notifier.CH_RAIN else Notifier.CH_BRIEF,
+                if (kind == "rain") 201 else 202,
+                o.optString("title"), o.optString("body")
+            )
+        }
+
+        @JavascriptInterface
         fun haptic() {
             web.post {
                 @Suppress("DEPRECATION")
@@ -252,6 +286,7 @@ class MainActivity : Activity() {
 
     companion object {
         private const val REQ_LOCATION = 1
+        private const val REQ_NOTIFY = 2
 
         @Volatile
         var inForeground = false

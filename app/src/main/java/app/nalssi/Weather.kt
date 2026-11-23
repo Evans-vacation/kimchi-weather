@@ -21,7 +21,9 @@ data class Weather(
     val days: List<Day>,
     val pm10: Double?,
     val pm25: Double?,
-    val fetchedAt: Long
+    val fetchedAt: Long,
+    /** Temperature at this hour yesterday, if known. */
+    val yesterday: Double? = null
 )
 
 /** The place the app last showed; widgets use the same one. */
@@ -58,7 +60,7 @@ object WeatherRepo {
                     "&current=temperature_2m,apparent_temperature,is_day,weather_code" +
                     "&hourly=temperature_2m,precipitation_probability,weather_code,is_day" +
                     "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
-                    "&timezone=auto&forecast_days=7",
+                    "&timezone=auto&forecast_days=7&past_hours=24",
                 10000
             )
         val aqText = try {
@@ -138,7 +140,8 @@ object WeatherRepo {
             days = days,
             pm10 = pm10,
             pm25 = pm25,
-            fetchedAt = fetchedAt
+            fetchedAt = fetchedAt,
+            yesterday = if (start >= 24) hours[start - 24].temp else null
         )
     }
 
