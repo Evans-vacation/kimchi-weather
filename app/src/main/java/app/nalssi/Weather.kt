@@ -39,6 +39,16 @@ object Prefs {
         )
     }
 
+    val THEMES = setOf("nature", "city", "coast", "jeju", "hanok", "tropical", "desert", "alps", "paris")
+
+    /** Region landscape for the widget background, chosen by the app page (themeFor). */
+    fun theme(ctx: Context): String =
+        ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString("theme", "city")?.takeIf { it in THEMES } ?: "city"
+
+    fun saveTheme(ctx: Context, theme: String) {
+        if (theme in THEMES) ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putString("theme", theme).apply()
+    }
+
     fun save(ctx: Context, place: Place) {
         ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
             .putString("name", place.name)
@@ -201,14 +211,14 @@ object Wx {
         else -> R.drawable.ic_w_cloudy
     }
 
-    fun scene(c: Int, day: Boolean): Int = when (cat(c)) {
-        "clear" -> if (day) R.drawable.scene_clear_day else R.drawable.scene_clear_night
-        "partly" -> if (day) R.drawable.scene_partly_day else R.drawable.scene_partly_night
-        "fog" -> if (day) R.drawable.scene_fog_day else R.drawable.scene_fog_night
-        "rain" -> if (day) R.drawable.scene_rain_day else R.drawable.scene_rain_night
-        "snow" -> if (day) R.drawable.scene_snow_day else R.drawable.scene_snow_night
-        "storm" -> if (day) R.drawable.scene_storm_day else R.drawable.scene_storm_night
-        else -> if (day) R.drawable.scene_cloudy_day else R.drawable.scene_cloudy_night
+    /** Region landscape × weather × day/night picture (res/drawable-nodpi/scene_<theme>_<cat>_<day|night>.webp). */
+    @android.annotation.SuppressLint("DiscouragedApi")
+    fun scene(ctx: Context, c: Int, day: Boolean, theme: String): Int {
+        val name = "scene_${theme}_${cat(c)}_${if (day) "day" else "night"}"
+        val id = ctx.resources.getIdentifier(name, "drawable", ctx.packageName)
+        if (id != 0) return id
+        return ctx.resources.getIdentifier("scene_nature_${cat(c)}_${if (day) "day" else "night"}", "drawable", ctx.packageName)
+            .takeIf { it != 0 } ?: R.drawable.bg_clear_day
     }
 
     fun bg(c: Int, day: Boolean): Int = when (cat(c)) {

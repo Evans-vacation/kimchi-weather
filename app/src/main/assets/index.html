@@ -211,10 +211,10 @@ button,input{font:inherit;color:inherit}
 
 <script>
 /* Weather scenes: one original landscape (sky, mountains, lake, hill with pines) dressed per weather.
-   sceneSVG(cat, night, animate) -> SVG string, 1600x1000, slice-fills its box.
+   sceneSVG(cat, night, animate, theme) -> SVG string; theme: nature | city | coast | jeju | hanok | tropical | desert | alps | paris, 1600x1000, slice-fills its box.
    cat: clear | partly | cloudy | rain | snow | storm | fog. With animate, everything loops in 5 s. */
 let sceneN = 0;
-function sceneSVG(cat, night, animate){
+function sceneSVG(cat, night, animate, theme){
   let seed = 7;
   const u = 'sc' + (++sceneN) + '_';
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -301,21 +301,136 @@ function sceneSVG(cat, night, animate){
     out.push(`<polygon points="760,330 700,470 745,470 705,600 820,430 770,430 810,330" fill="#ffe680"${cls('flash')} ${animate ? '' : 'opacity="0.9"'}/>`);
   }
 
-  // mountains
-  out.push(`<path d="M0,560 L120,470 L260,520 L420,410 L600,520 L760,450 L900,530 L1060,430 L1240,520 L1400,455 L1600,540 L1600,610 L0,610Z" fill="${far}" opacity="${cat === 'fog' ? .45 : .9}"/>`);
-  if (snowy) out.push(`<path d="M420,410 L372,443 L400,438 L425,452 L452,436 L470,446Z M1060,430 L1016,462 L1046,455 L1068,468 L1090,452 L1106,460Z M760,450 L725,474 L752,470 L770,478Z" fill="#f3f7fb" opacity=".9"/>`);
-  out.push(`<path d="M0,605 L180,535 L340,590 L520,540 L700,600 L880,548 L1080,608 L1280,556 L1460,606 L1600,578 L1600,640 L0,640Z" fill="${near}" opacity="${cat === 'fog' ? .55 : 1}"/>`);
+  // ---------- landscape by region theme ----------
+  const fogOp = cat === 'fog' ? .5 : 1;
+  const pineTree = (x, y, h) => `<path d="M${x},${y - h} L${x - h * .32},${y - h * .35} L${x - h * .14},${y - h * .38} L${x - h * .4},${y} L${x + h * .4},${y} L${x + h * .14},${y - h * .38} L${x + h * .32},${y - h * .35}Z"/>`;
+  const pineSnow = list => snowy ? `<g fill="#f6f9fc" opacity=".9">${list.map(([x,y,h]) => `<path d="M${x},${y - h} L${x - h * .18},${y - h * .62} L${x + h * .18},${y - h * .62}Z"/>`).join('')}</g>` : '';
+  const roundTree = (x, y, r) => `<rect x="${x - 4}" y="${y - r * .6}" width="8" height="${r * .9}" fill="${night ? '#120d0a' : '#5b4330'}"/><circle cx="${x}" cy="${y - r}" r="${r}" fill="${snowy ? (night ? '#7b8798' : '#f2f6fa') : pine}"/>`;
+  const ground = (d) => `<path d="${d}" fill="url(#${u}hl)"/>`;
+  const lit = night ? '#ffd98a' : null;
+  const bldA = night ? mix(s1, '#0b1020', .5) : mix(s2, '#3b4f68', .55);
+  const bldB = night ? mix(s1, '#05080f', .7) : mix(s2, '#2a394c', .72);
+  const seaTop = mix(s3, night ? '#0c2a48' : '#3d8fc4', .45), seaBot = mix(s1, night ? '#06182c' : '#1b5f93', .55);
+  const seaGrad = (id, a, b) => `<defs><linearGradient id="${u}${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>`;
+  const reflections = (x) => showOrb ? `<g fill="${night ? '#f6efd2' : '#fff2b8'}"${cls('shim')}><rect x="${x - 50}" y="650" width="100" height="4" rx="2" opacity=".7"/><rect x="${x - 70}" y="672" width="140" height="4" rx="2" opacity=".5"/><rect x="${x - 35}" y="696" width="70" height="3" rx="2" opacity=".45"/></g>` : '';
+  const waves = (y0, y1) => { const W = []; for (let i = 0; i < 14; i++){ const x = (i * 263) % 1600, y = y0 + ((i * 97) % (y1 - y0)); W.push(`<rect x="${x}" y="${y}" width="${80 + (i * 37) % 120}" height="3" rx="2"/>`); }
+    return `<g fill="#ffffff" opacity="${night ? .12 : .3}"${cls('shim')}>${W.join('')}</g>`; };
+  const windows = (x, y, w, h) => { if (!lit) return ''; const R = [];
+    for (let yy = y + 10; yy < y + h - 8; yy += 18) for (let xx = x + 6; xx < x + w - 8; xx += 14) if (rnd() < .38) R.push(`<rect x="${xx.toFixed(0)}" y="${yy}" width="6" height="8"/>`);
+    return `<g fill="${lit}" opacity=".85">${R.join('')}</g>`; };
+  const skyline = (base, minH, maxH, fill, withWin, x0 = -20, x1 = 1620) => { const B = []; let x = x0;
+    while (x < x1){ const w = 40 + rnd() * 80, h = minH + rnd() * (maxH - minH);
+      B.push(`<rect x="${x.toFixed(0)}" y="${(base - h).toFixed(0)}" width="${w.toFixed(0)}" height="${(h + 2).toFixed(0)}" fill="${fill}"/>`);
+      if (withWin) B.push(windows(x, base - h, w, h));
+      x += w + 2 + rnd() * 10; }
+    return B.join(''); };
+  const L = [];
+  const th = theme || 'nature';
 
-  // lake + reflections
-  out.push(`<rect y="630" width="1600" height="160" fill="url(#${u}lk)"/>`);
-  if (showOrb) out.push(`<g fill="${night ? '#f6efd2' : '#fff2b8'}"${cls('shim')}><rect x="1130" y="650" width="100" height="4" rx="2" opacity=".7"/><rect x="1110" y="672" width="140" height="4" rx="2" opacity=".5"/><rect x="1145" y="696" width="70" height="3" rx="2" opacity=".45"/><rect x="1120" y="720" width="120" height="3" rx="2" opacity=".3"/></g>`);
-  out.push(`<g fill="#ffffff" opacity="${night ? .12 : .22}"${cls('shim')}><rect x="180" y="668" width="160" height="3" rx="2"/><rect x="520" y="700" width="220" height="3" rx="2"/><rect x="860" y="740" width="150" height="3" rx="2"/><rect x="300" y="752" width="110" height="3" rx="2"/></g>`);
-
-  // foreground hill with pines
-  out.push(`<path d="M0,770 C300,712 600,730 900,770 C1150,800 1400,748 1600,728 L1600,1000 L0,1000Z" fill="url(#${u}hl)"/>`);
-  const tree = (x, y, h) => `<path d="M${x},${y - h} L${x - h * .32},${y - h * .35} L${x - h * .14},${y - h * .38} L${x - h * .4},${y} L${x + h * .4},${y} L${x + h * .14},${y - h * .38} L${x + h * .32},${y - h * .35}Z"/>`;
-  out.push(`<g fill="${pine}">${tree(120, 790, 150)}${tree(200, 778, 110)}${tree(60, 800, 90)}${tree(1440, 760, 160)}${tree(1530, 752, 120)}${tree(1360, 772, 90)}</g>`);
-  if (snowy) out.push(`<g fill="#f6f9fc" opacity=".9">${[[120,790,150],[200,778,110],[1440,760,160],[1530,752,120]].map(([x,y,h]) => `<path d="M${x},${y - h} L${x - h * .18},${y - h * .62} L${x + h * .18},${y - h * .62}Z"/>`).join('')}</g>`);
+  if (th === 'city'){
+    L.push(`<path d="M0,600 L200,545 L380,580 L560,525 L760,575 L980,535 L1200,585 L1400,545 L1600,580 L1600,660 L0,660Z" fill="${far}" opacity="${.8 * fogOp}"/>`);
+    L.push(`<path d="M200,620 Q370,470 540,620Z" fill="${near}" opacity="${fogOp}"/>`);
+    L.push(`<g fill="${bldB}" opacity="${fogOp}"><rect x="364" y="350" width="10" height="160"/><rect x="345" y="400" width="48" height="20" rx="6"/><rect x="367" y="300" width="4" height="52"/></g>`);
+    if (night) L.push(`<circle cx="369" cy="300" r="5" fill="#ff5a5a"${cls('tw')}/>`);
+    L.push(`<g opacity="${.92 * fogOp}">${skyline(650, 90, 260, bldA, false)}</g>`);
+    L.push(`<g opacity="${fogOp}">${skyline(660, 50, 170, bldB, true)}</g>`);
+    L.push(`<rect y="655" width="1600" height="110" fill="url(#${u}lk)"/>` + reflections(1180));
+    L.push(ground('M0,770 C400,748 800,752 1200,768 C1400,776 1520,764 1600,758 L1600,1000 L0,1000Z'));
+    L.push(roundTree(120, 790, 46) + roundTree(210, 784, 34) + roundTree(1400, 780, 44) + roundTree(1500, 776, 34));
+  } else if (th === 'coast'){
+    L.push(seaGrad('sea', seaTop, seaBot));
+    L.push(`<rect y="570" width="1600" height="260" fill="url(#${u}sea)"/>`);
+    L.push(`<path d="M1240,575 Q1320,530 1420,572Z M1430,575 Q1480,550 1540,575Z M60,575 Q150,540 250,575Z" fill="${far}" opacity="${.85 * fogOp}"/>`);
+    L.push(reflections(1180) + waves(610, 790));
+    const bc = night ? '#2a3550' : '#e9eef4', cable = night ? '#59658a' : '#cfd8e3';
+    L.push(`<g opacity="${fogOp}"><g fill="none" stroke="${cable}" stroke-width="3"><path d="M-60,612 Q260,640 532,470"/><path d="M546,470 Q800,606 1062,470"/><path d="M1076,470 Q1360,600 1660,604"/></g>
+      <rect x="-60" y="612" width="1720" height="12" fill="${bc}"/><rect x="526" y="462" width="20" height="160" fill="${bc}"/><rect x="1056" y="462" width="20" height="160" fill="${bc}"/>
+      ${night ? `<g fill="#ffd98a"${cls('tw')}>${Array.from({length:40}, (_, i) => `<circle cx="${-40 + i * 43}" cy="618" r="2.5"/>`).join('')}</g>` : ''}</g>`);
+    L.push(`<path d="M0,740 C60,700 200,700 290,760 L290,800 L0,800Z" fill="${night ? '#141a26' : '#4a4f59'}"/>`);
+    L.push(`<g><path d="M150,600 L186,600 L196,720 L140,720Z" fill="#f4f4f4"/><rect x="146" y="630" width="44" height="18" fill="#d9483b"/><rect x="142" y="672" width="52" height="18" fill="#d9483b"/><rect x="154" y="582" width="28" height="20" fill="${night ? '#ffe28a' : '#dfe7ee'}"/><path d="M150,582 L168,566 L186,582Z" fill="#d9483b"/></g>`);
+    if (night) L.push(`<path d="M168,592 L-40,540 L-40,640Z" fill="#fff3c0" opacity=".18"${cls('tw')}/>`);
+    const sand = snowy ? (night ? '#6d7c96' : '#eef2f6') : (night ? '#3a3a45' : '#e8d6a6');
+    L.push(`<path d="M0,830 C400,780 800,796 1200,806 C1400,810 1520,796 1600,786 L1600,1000 L0,1000Z" fill="${sand}"/>`);
+    L.push(`<g fill="${pine}">${pineTree(1440, 820, 140)}${pineTree(1530, 812, 110)}${pineTree(1360, 826, 80)}</g>` + pineSnow([[1440,820,140],[1530,812,110]]));
+  } else if (th === 'jeju'){
+    L.push(seaGrad('sea', seaTop, seaBot));
+    L.push(`<rect y="600" width="1600" height="130" fill="url(#${u}sea)"/>` + waves(630, 720));
+    L.push(`<path d="M80,630 C380,540 560,445 760,435 C960,445 1160,540 1520,630Z" fill="${far}" opacity="${fogOp}"/>`);
+    L.push(`<path d="M722,442 Q760,458 798,442" fill="none" stroke="${near}" stroke-width="6" opacity="${fogOp}"/>`);
+    if (snowy) L.push(`<path d="M640,470 C700,445 740,436 760,436 C780,436 820,445 880,470 C840,480 800,470 760,476 C720,470 680,482 640,470Z" fill="#f3f7fb" opacity=".95"/>`);
+    L.push(`<path d="M180,700 Q300,610 420,700Z M1150,700 Q1270,620 1390,700Z" fill="${near}" opacity="${fogOp}"/>`);
+    const field = snowy ? (night ? '#6d7c96' : '#eef2f6') : (night ? '#4b4a2e' : '#f0cf45');
+    const field2 = snowy ? (night ? '#5d6a80' : '#dde6ef') : (night ? '#2b3a2a' : '#5f9a4a');
+    L.push(`<path d="M0,730 C400,700 1100,700 1600,725 L1600,1000 L0,1000Z" fill="${field2}"/>`);
+    L.push(`<path d="M0,800 C300,770 700,770 1000,790 C1250,805 1450,790 1600,782 L1600,1000 L0,1000Z" fill="${field}"/>`);
+    const stones = y => Array.from({length:44}, (_, i) => `<ellipse cx="${i * 37 + (i % 2) * 8}" cy="${y + Math.sin(i / 3) * 6}" rx="${14 + (i % 3) * 3}" ry="10"/>`).join('');
+    L.push(`<g fill="${night ? '#10131a' : '#3c3f45'}">${stones(735)}${stones(880)}</g>`);
+  } else if (th === 'hanok'){
+    L.push(`<path d="M0,600 C200,540 400,520 600,560 C800,600 1000,520 1200,530 C1400,540 1500,580 1600,570 L1600,660 L0,660Z" fill="${far}" opacity="${.9 * fogOp}"/>`);
+    L.push(`<path d="M0,650 C250,600 500,610 760,640 C1000,668 1300,600 1600,630 L1600,720 L0,720Z" fill="${near}" opacity="${fogOp}"/>`);
+    L.push(ground('M0,740 C300,712 700,716 1000,738 C1250,754 1450,734 1600,724 L1600,1000 L0,1000Z'));
+    const wall = night ? '#4a4a55' : '#efe7d6', roof = night ? '#1e2128' : '#3b3f46', wood = night ? '#2a1d16' : '#7b4b2a';
+    const hanok = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})">
+      <rect x="-80" y="-52" width="160" height="52" fill="${wall}"/>${[-60, -20, 20, 60].map(px => `<rect x="${px - 3}" y="-52" width="6" height="52" fill="${wood}"/>`).join('')}
+      ${night ? `<rect x="-48" y="-40" width="26" height="26" fill="#ffd98a" opacity=".85"/><rect x="22" y="-40" width="26" height="26" fill="#ffd98a" opacity=".85"/>` : ''}
+      <path d="M-120,-56 Q-70,-62 -50,-96 L50,-96 Q70,-62 120,-56 L104,-48 L-104,-48Z" fill="${roof}"/>
+      ${snowy ? `<path d="M-50,-96 L50,-96 Q62,-80 80,-70 L-80,-70 Q-62,-80 -50,-96Z" fill="#f3f7fb"/>` : ''}</g>`;
+    L.push(hanok(1080, 780, 1.25) + hanok(1360, 760, .95) + hanok(820, 770, .8));
+    const tr = night ? '#1c120d' : '#6e3f26';
+    L.push(`<path d="M220,820 C230,740 190,700 240,620 C260,590 300,560 330,540" fill="none" stroke="${tr}" stroke-width="16" stroke-linecap="round"/>
+      <g fill="${snowy ? (night ? '#7b8798' : '#f2f6fa') : pine}"><ellipse cx="330" cy="530" rx="110" ry="30"/><ellipse cx="220" cy="610" rx="90" ry="26"/><ellipse cx="300" cy="580" rx="70" ry="20"/></g>`);
+  } else if (th === 'tropical'){
+    const t1 = night ? '#0f2f45' : mix('#43c6cf', s3, .2), t2 = night ? '#06182a' : '#1688b5';
+    L.push(seaGrad('sea', t1, t2));
+    L.push(`<rect y="590" width="1600" height="240" fill="url(#${u}sea)"/>` + reflections(1180) + waves(620, 800));
+    L.push(`<path d="M1180,598 Q1300,540 1440,596Z" fill="${far}" opacity="${fogOp}"/>`);
+    const sand = night ? '#3e3b45' : '#f3e5bd';
+    L.push(`<path d="M0,800 C400,760 900,770 1300,800 C1450,812 1540,800 1600,792 L1600,1000 L0,1000Z" fill="${sand}"/>`);
+    const palm = (x, y, h, lean) => { const tx = x + lean, ty = y - h, leaf = night ? '#0b1a14' : '#2f7d4a', trunk = night ? '#1b130e' : '#8a6a45';
+      const fr = [[-150, 30], [-110, -20], [-40, -60], [50, -55], [120, -15], [160, 35]].map(([dx, dy]) => `<path d="M${tx},${ty} Q${tx + dx * .5},${ty + dy - 40} ${tx + dx},${ty + dy + 30} Q${tx + dx * .55},${ty + dy - 10} ${tx},${ty}Z"/>`).join('');
+      return `<path d="M${x},${y} Q${x + lean * .2},${y - h * .55} ${tx},${ty}" fill="none" stroke="${trunk}" stroke-width="16" stroke-linecap="round"/><g fill="${leaf}">${fr}</g>`; };
+    L.push(palm(170, 880, 330, 80) + palm(300, 900, 240, 40) + palm(1460, 870, 300, -70));
+  } else if (th === 'desert'){
+    L.push(`<g fill="${night ? '#2a2c44' : mix(s3, '#c9b8a4', .5)}" opacity="${.85 * fogOp}">${skyline(640, 40, 140, night ? '#2a2c44' : mix(s3, '#a9a3a6', .5), true, 820, 1320)}<path d="M1046,640 L1056,330 L1062,250 L1068,330 L1078,640Z"/></g>`);
+    const d1 = night ? '#4a3d55' : '#e7b77f', d2 = night ? '#3a2f45' : '#d79c5d', d3 = night ? '#2a2236' : '#c4823f';
+    L.push(`<path d="M0,650 C200,600 420,600 640,640 C860,680 1080,600 1320,610 C1460,616 1540,630 1600,640 L1600,1000 L0,1000Z" fill="${d1}"/>`);
+    L.push(`<path d="M0,740 C260,690 520,700 760,740 C1000,780 1260,700 1600,720 L1600,1000 L0,1000Z" fill="${d2}"/>`);
+    L.push(`<path d="M0,850 C300,800 700,810 1000,850 C1250,880 1450,830 1600,820 L1600,1000 L0,1000Z" fill="${d3}"/>`);
+  } else if (th === 'alps'){
+    L.push(`<path d="M0,600 L150,420 L230,480 L360,300 L470,450 L560,380 L700,520 L820,330 L930,460 L1050,250 L1180,430 L1300,360 L1420,480 L1600,400 L1600,660 L0,660Z" fill="${far}" opacity="${fogOp}"/>`);
+    L.push(`<path d="M150,420 L120,456 L150,450 L172,462 L190,446Z M360,300 L318,350 L350,342 L372,356 L400,340Z M820,330 L780,378 L812,370 L834,384 L860,368Z M1050,250 L1000,310 L1040,300 L1062,316 L1094,296Z M1300,360 L1264,402 L1294,396 L1316,408 L1338,394Z" fill="#f3f7fb" opacity=".95"/>`);
+    L.push(`<path d="M0,670 L200,600 L380,660 L600,590 L820,670 L1040,610 L1260,670 L1450,620 L1600,650 L1600,740 L0,740Z" fill="${near}" opacity="${fogOp}"/>`);
+    L.push(ground('M0,760 C300,720 700,730 1000,756 C1250,776 1450,744 1600,734 L1600,1000 L0,1000Z'));
+    const wood = night ? '#2a1d16' : '#8a5a34', roof = night ? '#1a1416' : '#5a3a2a';
+    L.push(`<g transform="translate(1180 800)"><rect x="-70" y="-70" width="140" height="70" fill="${wood}"/><path d="M-95,-62 L0,-140 L95,-62Z" fill="${snowy ? '#f3f7fb' : roof}"/>
+      <rect x="-45" y="-52" width="26" height="22" fill="${night ? '#ffd98a' : '#cfe3f2'}"/><rect x="19" y="-52" width="26" height="22" fill="${night ? '#ffd98a' : '#cfe3f2'}"/></g>`);
+    L.push(`<g fill="${pine}">${pineTree(120, 800, 170)}${pineTree(220, 790, 120)}${pineTree(1450, 790, 150)}${pineTree(1540, 782, 110)}</g>` + pineSnow([[120,800,170],[220,790,120],[1450,790,150],[1540,782,110]]));
+  } else if (th === 'paris'){
+    L.push(`<g opacity="${.75 * fogOp}">${skyline(640, 30, 80, far, false)}</g>`);
+    const iron = night ? '#1a1d26' : '#4a4f5a';
+    L.push(`<g fill="${iron}" opacity="${fogOp}"><path fill-rule="evenodd" d="M930,690 L976,545 L988,430 L996,300 L1000,250 L1004,300 L1012,430 L1024,545 L1070,690Z M962,690 Q1000,612 1038,690Z"/><rect x="962" y="540" width="76" height="12"/><rect x="980" y="425" width="40" height="9"/><rect x="998" y="210" width="4" height="44"/></g>`);
+    if (night) L.push(`<g fill="#ffe6a0"${cls('tw')}>${Array.from({length:30}, (_, i) => { const t = i / 29, y = 260 + t * 420, hw = 4 + t * t * 66; return `<circle cx="${(1000 + (i % 2 ? hw : -hw) * .8).toFixed(0)}" cy="${y.toFixed(0)}" r="2.4"/>`; }).join('')}</g>`);
+    const facade = night ? '#2c2f3e' : '#e8dcc5', roof = night ? '#161925' : '#5d6a7c';
+    const B = []; let x = -20;
+    while (x < 1620){ const w = 90 + rnd() * 70, h = 70 + rnd() * 50, base = 720;
+      B.push(`<rect x="${x.toFixed(0)}" y="${base - h}" width="${w.toFixed(0)}" height="${h}" fill="${facade}"/><path d="M${x.toFixed(0)},${base - h} L${(x + 12).toFixed(0)},${base - h - 34} L${(x + w - 12).toFixed(0)},${base - h - 34} L${(x + w).toFixed(0)},${base - h}Z" fill="${snowy ? '#eef3f8' : roof}"/><rect x="${(x + w * .3).toFixed(0)}" y="${base - h - 52}" width="10" height="22" fill="${roof}"/>`);
+      if (night) B.push(windows(x, base - h, w, h)); else for (let wx = x + 10; wx < x + w - 14; wx += 22) B.push(`<rect x="${wx.toFixed(0)}" y="${base - h + 14}" width="9" height="16" fill="#9fb0c4" opacity=".6"/>`);
+      x += w + 4; }
+    L.push(`<g opacity="${fogOp}">${B.join('')}</g>`);
+    L.push(`<rect y="720" width="1600" height="60" fill="url(#${u}lk)"/>`);
+    L.push(ground('M0,780 L1600,780 L1600,1000 L0,1000Z'));
+    L.push(roundTree(110, 800, 40) + roundTree(260, 800, 36) + roundTree(1360, 800, 40) + roundTree(1500, 800, 34));
+  } else {
+    // nature: mountains, lake, pines
+    L.push(`<path d="M0,560 L120,470 L260,520 L420,410 L600,520 L760,450 L900,530 L1060,430 L1240,520 L1400,455 L1600,540 L1600,610 L0,610Z" fill="${far}" opacity="${cat === 'fog' ? .45 : .9}"/>`);
+    if (snowy) L.push(`<path d="M420,410 L372,443 L400,438 L425,452 L452,436 L470,446Z M1060,430 L1016,462 L1046,455 L1068,468 L1090,452 L1106,460Z M760,450 L725,474 L752,470 L770,478Z" fill="#f3f7fb" opacity=".9"/>`);
+    L.push(`<path d="M0,605 L180,535 L340,590 L520,540 L700,600 L880,548 L1080,608 L1280,556 L1460,606 L1600,578 L1600,640 L0,640Z" fill="${near}" opacity="${cat === 'fog' ? .55 : 1}"/>`);
+    L.push(`<rect y="630" width="1600" height="160" fill="url(#${u}lk)"/>` + reflections(1180));
+    L.push(`<g fill="#ffffff" opacity="${night ? .12 : .22}"${cls('shim')}><rect x="180" y="668" width="160" height="3" rx="2"/><rect x="520" y="700" width="220" height="3" rx="2"/><rect x="860" y="740" width="150" height="3" rx="2"/><rect x="300" y="752" width="110" height="3" rx="2"/></g>`);
+    L.push(ground('M0,770 C300,712 600,730 900,770 C1150,800 1400,748 1600,728 L1600,1000 L0,1000Z'));
+    L.push(`<g fill="${pine}">${pineTree(120, 790, 150)}${pineTree(200, 778, 110)}${pineTree(60, 800, 90)}${pineTree(1440, 760, 160)}${pineTree(1530, 752, 120)}${pineTree(1360, 772, 90)}</g>` + pineSnow([[120,790,150],[200,778,110],[1440,760,160],[1530,752,120]]));
+  }
+  out.push(L.join('\n'));
 
   // precipitation
   if (cat === 'rain' || cat === 'storm'){
@@ -467,7 +582,7 @@ function demoData(){
 
 async function loadPlace(p){
   state.place = p; store.set('place', p);
-  try{ if (window.Android) window.Android.setPlace(JSON.stringify(p)); }catch(e){}
+  try{ if (window.Android) window.Android.setPlace(JSON.stringify(Object.assign({}, p, {theme: themeFor(p)}))); }catch(e){}
   $('#hero').classList.add('loading'); $('#place').innerHTML = esc(p.name) + ' <small>불러오는 중…</small>';
   markChips();
   try{
@@ -495,8 +610,9 @@ function render(){
   $('#hl').textContent = `최고 ${deg(d.daily.temperature_2m_max[0])} · 최저 ${deg(d.daily.temperature_2m_min[0])} · 체감 ${deg(c.apparent_temperature)}`;
   $('#big').innerHTML = icon(cat, day);
   $('#cmp').innerHTML = compareText(d);
-  const sk = cat + (day ? 'd' : 'n');
-  if (state.sceneKey !== sk){ state.sceneKey = sk; $('#scene').innerHTML = sceneSVG(cat, !day, true); }
+  const theme = themeFor(state.place);
+  const sk = cat + (day ? 'd' : 'n') + theme;
+  if (state.sceneKey !== sk){ state.sceneKey = sk; $('#scene').innerHTML = sceneSVG(cat, !day, true, theme); }
   document.title = `${p.name} ${deg(c.temperature_2m)} ${label}`;
   renderAir(); renderHours(d); renderDays(d); renderDetails(d);
   $('#unit').textContent = '°' + state.unit;
@@ -770,6 +886,29 @@ $('#loc').addEventListener('click', () => {
     {timeout: 10000}
   );
 });
+
+/* ---------- 지역 풍경 (scene theme) ---------- */
+const COAST_SGG = /^(해운대구|수영구|영도구|사하구|기장군|강릉시|속초시|동해시|삼척시|양양군|포항시|영덕군|울진군|울릉군|통영시|거제시|남해군|사천시|여수시|목포시|완도군|진도군|신안군|고흥군|해남군|군산시|부안군|보령시|태안군|서천군|옹진군)/;
+function themeFor(p){
+  const name = p.name || '', admin = p.admin || '', country = p.country || '';
+  const all = name + ' ' + admin + ' ' + country;
+  if (/하와이|호놀룰루|괌|사이판|칸쿤|발리|덴파사르|푸껫|보라카이|세부|나트랑|다낭|푸꾸옥|코타키나발루|말레|몰디브|피지|난디|파타야|오키나와|나하|싼야|잔지바르/.test(all)) return 'tropical';
+  if (/라스베이거스|피닉스|두바이|아부다비|도하|리야드|카이로|마라케시/.test(all)) return 'desert';
+  if (/퀸스타운|인터라켄|잘츠부르크|스위스|오스트리아|레이캬비크/.test(all)) return 'alps';
+  if (/프랑스/.test(country) || /^파리$/.test(name)) return 'paris';
+  if (/태국|베트남|필리핀|인도네시아|말레이시아|캄보디아/.test(country)) return 'tropical';
+  if (/제주/.test(all)) return 'jeju';
+  if (/경주|전주|안동/.test(all)) return 'hanok';
+  const gu = admin.split(' ').pop() || '';
+  if (/부산/.test(all) && !/(부산진구|동래구|금정구|연제구|북구|사상구)/.test(admin)) return 'coast';
+  if (COAST_SGG.test(admin) || COAST_SGG.test(name) || COAST_SGG.test(name + '시') || COAST_SGG.test(name + '군') || /(인천).*(중구|연수구)/.test(country + ' ' + admin) || /(울산).*(동구)/.test(country + ' ' + admin)) return 'coast';
+  const korean = DONG.sido.includes(country) || /대한민국|한국|Korea/.test(country);
+  if (korean){
+    if (/군$/.test(admin.split(' ')[0] || '') || /(읍|면)$/.test(name)) return 'nature';
+    return 'city';
+  }
+  return country ? 'city' : 'nature';
+}
 
 /* ---------- 어제와 비교 ---------- */
 function yesterdayDiff(d){

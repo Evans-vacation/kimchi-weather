@@ -7,6 +7,9 @@ plugins {
 val appVersionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
 val updateRepo = (project.findProperty("repo") as String?) ?: ""
 val releaseKey = file("release.jks")
+// Project version shown on the phone (설정 → 애플리케이션 → 날씨). Edit version.properties to change it.
+val projectVersion = rootProject.file("version.properties").takeIf { it.exists() }
+    ?.readLines()?.firstOrNull { it.startsWith("version=") }?.substringAfter("=")?.trim() ?: "1.0.0"
 
 android {
     namespace = "app.nalssi"
@@ -17,7 +20,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = appVersionCode
-        versionName = "1.0.$appVersionCode"
+        versionName = projectVersion
         buildConfigField("String", "UPDATE_REPO", "\"$updateRepo\"")
     }
     buildFeatures { buildConfig = true }

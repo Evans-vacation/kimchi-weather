@@ -244,6 +244,7 @@ class MainActivity : Activity() {
                     applicationContext,
                     Place(o.optString("name", "현재 위치"), o.getDouble("lat"), o.getDouble("lon"))
                 )
+                Prefs.saveTheme(applicationContext, o.optString("theme", "city"))
             } catch (e: Exception) {
                 // ignore malformed input
             }
