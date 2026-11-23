@@ -70,6 +70,7 @@ app/src/main/java/app/nalssi/
   Widgets.kt                            위젯 3종 그리기와 새로고침
 app/src/main/res/layout/widget_*.xml    위젯 레이아웃
 app/src/main/res/drawable/ic_w_*.xml    날씨 아이콘 (벡터)
+app/src/main/assets/scenes.zip          위젯 풍경 그림 126장 (지역 9 × 날씨 7 × 낮/밤)
 .github/workflows/build.yml             커밋하면 APK 빌드 + Release 발행
   Updater.kt (java/app/nalssi)          새 버전 확인과 자동 설치
 ```

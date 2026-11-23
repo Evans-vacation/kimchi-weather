@@ -16,10 +16,14 @@
 :root{color-scheme:dark;--g1:#1f6fc5;--g2:#5aa9e6;--ink:#fff;--soft:rgba(255,255,255,.78);--panel:rgba(10,20,40,.3);--line:rgba(255,255,255,.18)}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.55 "IBM Plex Sans KR",system-ui,sans-serif;overflow-x:clip;
-  background:linear-gradient(170deg,var(--g1),var(--g2)) fixed;transition:background .8s}
-.scene{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
-.scene svg{width:100%;height:100%;display:block;filter:brightness(1.18) saturate(1.05)}
-.scene::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22) 0,rgba(0,0,0,.06) 30%,rgba(0,0,0,.06) 50%,rgba(8,14,28,.32) 100%)}
+  background:color-mix(in srgb,var(--sbot,#2a4766) 38%,#0b1220);transition:background .8s}
+/* Phone: the whole picture sits across the top, full width, ending where the cards start (--sr).
+   The sky above it is filled with the picture's own top colour. It fades as you scroll. */
+.scene{position:fixed;top:0;left:0;right:0;height:var(--sr,100vh);z-index:-1;overflow:hidden;pointer-events:none;
+  background:var(--stop,#1f6fc5);will-change:opacity,transform;filter:brightness(1.18) saturate(1.05)}
+.scene svg{position:absolute;left:50%;bottom:0;width:104%;height:auto;aspect-ratio:1.6;transform:translateX(-50%);display:block}
+.scene::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22) 0,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 88%,rgba(0,0,0,.22) 100%)}
+@media(min-width:761px){.scene{height:100vh}.scene svg{left:0;width:100%;height:100%;aspect-ratio:auto;transform:none}}
 /* readable on bright scenes: every text gets a soft shadow, big numbers a stronger one */
 body{text-shadow:0 1px 2px rgba(0,0,0,.45),0 0 8px rgba(0,0,0,.18)}
 .hero{text-shadow:0 2px 4px rgba(0,0,0,.4),0 0 18px rgba(0,0,0,.25)}
@@ -214,7 +218,8 @@ button,input{font:inherit;color:inherit}
    sceneSVG(cat, night, animate, theme) -> SVG string; theme: nature | city | coast | jeju | hanok | tropical | desert | alps | paris, 1600x1000, slice-fills its box.
    cat: clear | partly | cloudy | rain | snow | storm | fog. With animate, everything loops in 5 s. */
 let sceneN = 0;
-function sceneSVG(cat, night, animate, theme){
+function sceneSVG(cat, night, animate, theme, opts){
+  const noOrb = !!(opts && opts.noOrb);   // the app shows its own big sun/moon icon
   let seed = 7;
   const u = 'sc' + (++sceneN) + '_';
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -276,7 +281,7 @@ function sceneSVG(cat, night, animate, theme){
 
   // sun / moon
   const showOrb = cat === 'clear' || cat === 'partly' || (cat === 'fog' && !night);
-  if (showOrb){
+  if (showOrb && !noOrb){
     out.push(`<circle cx="1180" cy="300" r="260" fill="url(#${u}gl)"${cls('pulse')}/>`);
     if (night) out.push(`<mask id="${u}mm"><rect x="-80" y="-80" width="160" height="160" fill="#fff"/><circle cx="24" cy="-16" r="50" fill="#000"/></mask><g transform="translate(1180 300)"><circle r="56" fill="#f6efd2" mask="url(#${u}mm)"/></g>`);
     else out.push(`<circle cx="1180" cy="300" r="68" fill="${cat === 'fog' ? '#fff6e0' : '#fff2b8'}" opacity="${cat === 'fog' ? .7 : 1}"/>`);
@@ -326,6 +331,7 @@ function sceneSVG(cat, night, animate, theme){
     return B.join(''); };
   const L = [];
   const th = theme || 'nature';
+  let gnd = hill2;
 
   if (th === 'city'){
     L.push(`<path d="M0,600 L200,545 L380,580 L560,525 L760,575 L980,535 L1200,585 L1400,545 L1600,580 L1600,660 L0,660Z" fill="${far}" opacity="${.8 * fogOp}"/>`);
@@ -349,7 +355,7 @@ function sceneSVG(cat, night, animate, theme){
     L.push(`<path d="M0,740 C60,700 200,700 290,760 L290,800 L0,800Z" fill="${night ? '#141a26' : '#4a4f59'}"/>`);
     L.push(`<g><path d="M150,600 L186,600 L196,720 L140,720Z" fill="#f4f4f4"/><rect x="146" y="630" width="44" height="18" fill="#d9483b"/><rect x="142" y="672" width="52" height="18" fill="#d9483b"/><rect x="154" y="582" width="28" height="20" fill="${night ? '#ffe28a' : '#dfe7ee'}"/><path d="M150,582 L168,566 L186,582Z" fill="#d9483b"/></g>`);
     if (night) L.push(`<path d="M168,592 L-40,540 L-40,640Z" fill="#fff3c0" opacity=".18"${cls('tw')}/>`);
-    const sand = snowy ? (night ? '#6d7c96' : '#eef2f6') : (night ? '#3a3a45' : '#e8d6a6');
+    const sand = snowy ? (night ? '#6d7c96' : '#eef2f6') : (night ? '#3a3a45' : '#e8d6a6'); gnd = sand;
     L.push(`<path d="M0,830 C400,780 800,796 1200,806 C1400,810 1520,796 1600,786 L1600,1000 L0,1000Z" fill="${sand}"/>`);
     L.push(`<g fill="${pine}">${pineTree(1440, 820, 140)}${pineTree(1530, 812, 110)}${pineTree(1360, 826, 80)}</g>` + pineSnow([[1440,820,140],[1530,812,110]]));
   } else if (th === 'jeju'){
@@ -362,6 +368,7 @@ function sceneSVG(cat, night, animate, theme){
     const field = snowy ? (night ? '#6d7c96' : '#eef2f6') : (night ? '#4b4a2e' : '#f0cf45');
     const field2 = snowy ? (night ? '#5d6a80' : '#dde6ef') : (night ? '#2b3a2a' : '#5f9a4a');
     L.push(`<path d="M0,730 C400,700 1100,700 1600,725 L1600,1000 L0,1000Z" fill="${field2}"/>`);
+    gnd = field;
     L.push(`<path d="M0,800 C300,770 700,770 1000,790 C1250,805 1450,790 1600,782 L1600,1000 L0,1000Z" fill="${field}"/>`);
     const stones = y => Array.from({length:44}, (_, i) => `<ellipse cx="${i * 37 + (i % 2) * 8}" cy="${y + Math.sin(i / 3) * 6}" rx="${14 + (i % 3) * 3}" ry="10"/>`).join('');
     L.push(`<g fill="${night ? '#10131a' : '#3c3f45'}">${stones(735)}${stones(880)}</g>`);
@@ -384,7 +391,7 @@ function sceneSVG(cat, night, animate, theme){
     L.push(seaGrad('sea', t1, t2));
     L.push(`<rect y="590" width="1600" height="240" fill="url(#${u}sea)"/>` + reflections(1180) + waves(620, 800));
     L.push(`<path d="M1180,598 Q1300,540 1440,596Z" fill="${far}" opacity="${fogOp}"/>`);
-    const sand = night ? '#3e3b45' : '#f3e5bd';
+    const sand = night ? '#3e3b45' : '#f3e5bd'; gnd = sand;
     L.push(`<path d="M0,800 C400,760 900,770 1300,800 C1450,812 1540,800 1600,792 L1600,1000 L0,1000Z" fill="${sand}"/>`);
     const palm = (x, y, h, lean) => { const tx = x + lean, ty = y - h, leaf = night ? '#0b1a14' : '#2f7d4a', trunk = night ? '#1b130e' : '#8a6a45';
       const fr = [[-150, 30], [-110, -20], [-40, -60], [50, -55], [120, -15], [160, 35]].map(([dx, dy]) => `<path d="M${tx},${ty} Q${tx + dx * .5},${ty + dy - 40} ${tx + dx},${ty + dy + 30} Q${tx + dx * .55},${ty + dy - 10} ${tx},${ty}Z"/>`).join('');
@@ -392,7 +399,7 @@ function sceneSVG(cat, night, animate, theme){
     L.push(palm(170, 880, 330, 80) + palm(300, 900, 240, 40) + palm(1460, 870, 300, -70));
   } else if (th === 'desert'){
     L.push(`<g fill="${night ? '#2a2c44' : mix(s3, '#c9b8a4', .5)}" opacity="${.85 * fogOp}">${skyline(640, 40, 140, night ? '#2a2c44' : mix(s3, '#a9a3a6', .5), true, 820, 1320)}<path d="M1046,640 L1056,330 L1062,250 L1068,330 L1078,640Z"/></g>`);
-    const d1 = night ? '#4a3d55' : '#e7b77f', d2 = night ? '#3a2f45' : '#d79c5d', d3 = night ? '#2a2236' : '#c4823f';
+    const d1 = night ? '#4a3d55' : '#e7b77f', d2 = night ? '#3a2f45' : '#d79c5d', d3 = night ? '#2a2236' : '#c4823f'; gnd = d3;
     L.push(`<path d="M0,650 C200,600 420,600 640,640 C860,680 1080,600 1320,610 C1460,616 1540,630 1600,640 L1600,1000 L0,1000Z" fill="${d1}"/>`);
     L.push(`<path d="M0,740 C260,690 520,700 760,740 C1000,780 1260,700 1600,720 L1600,1000 L0,1000Z" fill="${d2}"/>`);
     L.push(`<path d="M0,850 C300,800 700,810 1000,850 C1250,880 1450,830 1600,820 L1600,1000 L0,1000Z" fill="${d3}"/>`);
@@ -431,6 +438,7 @@ function sceneSVG(cat, night, animate, theme){
     L.push(`<g fill="${pine}">${pineTree(120, 790, 150)}${pineTree(200, 778, 110)}${pineTree(60, 800, 90)}${pineTree(1440, 760, 160)}${pineTree(1530, 752, 120)}${pineTree(1360, 772, 90)}</g>` + pineSnow([[120,790,150],[200,778,110],[1440,760,160],[1530,752,120]]));
   }
   out.push(L.join('\n'));
+  out[0] = out[0].replace('<svg ', `<svg data-top="${s1}" data-bot="${gnd}" `);
 
   // precipitation
   if (cat === 'rain' || cat === 'storm'){
@@ -612,7 +620,12 @@ function render(){
   $('#cmp').innerHTML = compareText(d);
   const theme = themeFor(state.place);
   const sk = cat + (day ? 'd' : 'n') + theme;
-  if (state.sceneKey !== sk){ state.sceneKey = sk; $('#scene').innerHTML = sceneSVG(cat, !day, true, theme); }
+  if (state.sceneKey !== sk){
+    state.sceneKey = sk; $('#scene').innerHTML = sceneSVG(cat, !day, true, theme, {noOrb:true});
+    const sv = $('#scene svg');
+    if (sv){ document.documentElement.style.setProperty('--stop', sv.dataset.top); document.documentElement.style.setProperty('--sbot', sv.dataset.bot); }
+  }
+  requestAnimationFrame(layoutScene);
   document.title = `${p.name} ${deg(c.temperature_2m)} ${label}`;
   renderAir(); renderHours(d); renderDays(d); renderDetails(d);
   $('#unit').textContent = '°' + state.unit;
@@ -886,6 +899,26 @@ $('#loc').addEventListener('click', () => {
     {timeout: 10000}
   );
 });
+
+/* ---------- scene layout: full picture on top, ending at the first card; fades on scroll ---------- */
+function layoutScene(){
+  const sc = $('#scene'), cards = $('#cards');
+  if (innerWidth > 760){ sc.style.removeProperty('--sr'); cards.style.marginTop = ''; return; }
+  cards.style.marginTop = '';                          // cards stay where they were
+  const R = cards.getBoundingClientRect().top + scrollY;   // picture ends right where the cards begin
+  sc.style.setProperty('--sr', Math.round(R) + 'px');
+  fadeScene();
+}
+function fadeScene(){
+  const sc = $('#scene'), R = sc.getBoundingClientRect().height || innerHeight;
+  const t = Math.min(scrollY / (R * 0.8), 1);
+  sc.style.opacity = (1 - t).toFixed(3);
+  sc.style.transform = `translateY(${(-scrollY * 0.3).toFixed(1)}px)`;
+}
+let fadeQueued = false;
+addEventListener('scroll', () => { if (fadeQueued) return; fadeQueued = true; requestAnimationFrame(() => { fadeQueued = false; fadeScene(); }); }, {passive:true});
+addEventListener('resize', () => requestAnimationFrame(layoutScene));
+if (document.fonts) document.fonts.ready.then(() => layoutScene());
 
 /* ---------- 지역 풍경 (scene theme) ---------- */
 const COAST_SGG = /^(해운대구|수영구|영도구|사하구|기장군|강릉시|속초시|동해시|삼척시|양양군|포항시|영덕군|울진군|울릉군|통영시|거제시|남해군|사천시|여수시|목포시|완도군|진도군|신안군|고흥군|해남군|군산시|부안군|보령시|태안군|서천군|옹진군)/;

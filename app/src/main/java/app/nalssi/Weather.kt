@@ -211,15 +211,8 @@ object Wx {
         else -> R.drawable.ic_w_cloudy
     }
 
-    /** Region landscape × weather × day/night picture (res/drawable-nodpi/scene_<theme>_<cat>_<day|night>.webp). */
-    @android.annotation.SuppressLint("DiscouragedApi")
-    fun scene(ctx: Context, c: Int, day: Boolean, theme: String): Int {
-        val name = "scene_${theme}_${cat(c)}_${if (day) "day" else "night"}"
-        val id = ctx.resources.getIdentifier(name, "drawable", ctx.packageName)
-        if (id != 0) return id
-        return ctx.resources.getIdentifier("scene_nature_${cat(c)}_${if (day) "day" else "night"}", "drawable", ctx.packageName)
-            .takeIf { it != 0 } ?: R.drawable.bg_clear_day
-    }
+    /** Region landscape × weather × day/night picture (packed in assets/scenes.zip, see Scenes). */
+    fun scene(ctx: Context, c: Int, day: Boolean, theme: String): android.net.Uri = Scenes.uri(ctx, theme, cat(c), day)
 
     fun bg(c: Int, day: Boolean): Int = when (cat(c)) {
         "clear" -> if (day) R.drawable.bg_clear_day else R.drawable.bg_clear_night

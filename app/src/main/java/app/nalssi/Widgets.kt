@@ -224,7 +224,7 @@ object WidgetUpdater {
                 rv.setViewVisibility(R.id.scrim, View.GONE)
             }
             else -> {
-                rv.setImageViewResource(R.id.bg, Wx.scene(ctx, w.code, w.isDay, Prefs.theme(ctx)))
+                rv.setImageViewUri(R.id.bg, Wx.scene(ctx, w.code, w.isDay, Prefs.theme(ctx)))
                 rv.setInt(R.id.bg, "setColorFilter", 0)
                 rv.setViewVisibility(R.id.scrim, View.VISIBLE)
                 rv.setInt(R.id.scrim, "setImageAlpha", alpha)

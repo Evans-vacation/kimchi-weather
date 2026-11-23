@@ -54,6 +54,8 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_large" />
         </receiver>
         <receiver android:name=".InstallReceiver" android:exported="false" />
+        <!-- widget landscape pictures for the launcher (read-only, nothing private) -->
+        <provider android:name=".ScenesProvider" android:authorities="app.nalssi.scenes" android:exported="true" />
         <receiver android:name=".AlarmReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
