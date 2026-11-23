@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">날씨</string>
+  <string name="w_small">날씨 · 소형 (현재)</string>
+  <string name="w_medium">날씨 · 중형 (시간별)</string>
+  <string name="w_large">날씨 · 대형 (주간 + 미세먼지)</string>
+  <string name="w_small_desc">지금 기온과 날씨를 한눈에</string>
+  <string name="w_medium_desc">지금 날씨와 앞으로 5시간</string>
+  <string name="w_large_desc">시간별, 5일 예보, 미세먼지까지</string>
+</resources>
