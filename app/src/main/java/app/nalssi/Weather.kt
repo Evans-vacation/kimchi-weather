@@ -198,6 +198,16 @@ object Wx {
         else -> R.drawable.ic_w_cloudy
     }
 
+    fun scene(c: Int, day: Boolean): Int = when (cat(c)) {
+        "clear" -> if (day) R.drawable.scene_clear_day else R.drawable.scene_clear_night
+        "partly" -> if (day) R.drawable.scene_partly_day else R.drawable.scene_partly_night
+        "fog" -> if (day) R.drawable.scene_fog_day else R.drawable.scene_fog_night
+        "rain" -> if (day) R.drawable.scene_rain_day else R.drawable.scene_rain_night
+        "snow" -> if (day) R.drawable.scene_snow_day else R.drawable.scene_snow_night
+        "storm" -> if (day) R.drawable.scene_storm_day else R.drawable.scene_storm_night
+        else -> if (day) R.drawable.scene_cloudy_day else R.drawable.scene_cloudy_night
+    }
+
     fun bg(c: Int, day: Boolean): Int = when (cat(c)) {
         "clear" -> if (day) R.drawable.bg_clear_day else R.drawable.bg_clear_night
         "partly" -> if (day) R.drawable.bg_partly_day else R.drawable.bg_partly_night

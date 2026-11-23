@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.HapticFeedbackConstants
 import android.view.WindowInsets
 import android.webkit.GeolocationPermissions
 import android.webkit.JavascriptInterface
@@ -52,6 +53,10 @@ class MainActivity : Activity() {
         web.settings.domStorageEnabled = true
         web.settings.setGeolocationEnabled(true)
         web.addJavascriptInterface(Bridge(), "Android")
+        // The page handles long-press itself (hold 4 s to reorder cards): no text selection or system buzz.
+        web.setOnLongClickListener { true }
+        web.isLongClickable = false
+        web.isHapticFeedbackEnabled = false
 
         web.webChromeClient = object : WebChromeClient() {
             override fun onGeolocationPermissionsShowPrompt(
@@ -166,6 +171,14 @@ class MainActivity : Activity() {
 
     /** Called from the page: window.Android.setPlace(JSON.stringify(place)). */
     inner class Bridge {
+        @JavascriptInterface
+        fun haptic() {
+            web.post {
+                @Suppress("DEPRECATION")
+                web.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING)
+            }
+        }
+
         /** Async: answers with window.__geoDone(id, json|null). */
         @JavascriptInterface
         fun reverseGeocode(lat: Double, lon: Double, id: String) {

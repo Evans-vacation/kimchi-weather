@@ -17,6 +17,9 @@
 *{box-sizing:border-box;min-width:0}
 body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.55 "IBM Plex Sans KR",system-ui,sans-serif;overflow-x:clip;
   background:linear-gradient(170deg,var(--g1),var(--g2)) fixed;transition:background .8s}
+.scene{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.scene svg{width:100%;height:100%;display:block}
+.scene::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 0,rgba(0,0,0,.12) 40%,rgba(8,14,28,.55) 100%)}
 .wrap{max-width:1100px;margin:0 auto;padding:clamp(16px,3vw,32px) max(4vw,16px) 40px}
 button,input{font:inherit;color:inherit}
 .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -54,7 +57,6 @@ button,input{font:inherit;color:inherit}
 .hc svg{width:34px;height:34px;display:block;margin:4px auto}
 .hc .p{color:#9fd6ff;font-size:13px;min-height:20px}
 .chart{display:block}
-.grid2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;margin-top:14px}
 .day{display:grid;grid-template-columns:3.2em 34px 3em 3em minmax(40px,1fr) 3em;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
 .day:first-of-type{border-top:0}
 .day svg{width:32px;height:32px}
@@ -69,7 +71,20 @@ button,input{font:inherit;color:inherit}
 .det span{font-size:22px;font-weight:600;white-space:nowrap}
 .det small{display:block;color:var(--soft);font-size:13px}
 .arrow{display:inline-block;transition:transform .4s}
-.air{margin-bottom:14px}
+#cards{display:flex;flex-direction:column;gap:14px}
+.card{position:relative;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .2s,box-shadow .2s}
+.card .hold{position:absolute;left:18px;right:18px;top:8px;height:3px;border-radius:2px;background:rgba(255,255,255,.25);overflow:hidden;opacity:0;transition:opacity .2s}
+.card .hold i{display:block;height:100%;width:0;background:#fff}
+.card.pressing .hold{opacity:1}.card.pressing .hold i{width:100%;transition:width 4s linear}
+.card.lift{z-index:5;transform:scale(1.02);box-shadow:0 18px 40px rgba(0,0,0,.35);outline:2px solid #fff;transition:box-shadow .2s}
+.card.dragging{transition:none}
+.mv{position:absolute;top:10px;right:12px;display:none;gap:6px;z-index:6}
+.card.lift .mv{display:flex}
+.mv button{min-width:44px;height:40px;border-radius:20px;border:1px solid rgba(255,255,255,.5);background:rgba(10,20,40,.55);color:#fff;font:inherit;font-size:15px;cursor:pointer;padding:0 12px}
+.mv button:focus-visible{outline:2px solid #fff}
+.hint{margin:14px 0 0;font-size:13px;color:var(--soft);text-align:center}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:rgba(10,20,40,.85);color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:20}
+.toast.on{opacity:1;transform:translate(-50%,0)}
 .tip{margin:0 0 12px;font-size:16px}
 .aqgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .aqc{background:rgba(255,255,255,.07);border-radius:14px;padding:12px 14px}
@@ -91,7 +106,6 @@ button,input{font:inherit;color:inherit}
 .foot{margin-top:18px;font-size:13px;color:var(--soft)}
 .foot a{color:#fff}
 .loading .temp,.loading .cond{opacity:.4}
-@media(max-width:800px){.grid2{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:420px){.aqgrid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){.hero{grid-template-columns:minmax(0,1fr) auto}.big{width:120px}.cond{font-size:18px}
   .day{grid-template-columns:3em 30px 2.6em 2.6em minmax(30px,1fr) 2.6em;gap:6px}}
@@ -101,6 +115,7 @@ button,input{font:inherit;color:inherit}
 </style>
 </head>
 <body>
+<div class="scene" id="scene" aria-hidden="true"></div>
 <div class="wrap" id="app">
   <div class="bar">
     <div class="search">
@@ -123,25 +138,156 @@ button,input{font:inherit;color:inherit}
     <div class="big" id="big"></div>
   </section>
 
-  <section class="panel air">
-    <h2>미세먼지</h2>
-    <div id="airtop"></div>
-    <div class="aqh" id="airhrs"></div>
-  </section>
-
-  <section class="panel">
-    <h2>시간별 예보</h2>
-    <div class="hours"><div class="hstrip" id="hours"></div></div>
-  </section>
-
-  <div class="grid2">
-    <section class="panel"><h2>7일 예보</h2><div id="days"></div></section>
-    <section class="panel"><h2>상세 정보</h2><div class="dets" id="dets"></div></section>
+  <div id="cards">
+    <section class="panel card" data-id="air">
+      <h2>미세먼지</h2>
+      <div id="airtop"></div>
+      <div class="aqh" id="airhrs"></div>
+    </section>
+    <section class="panel card" data-id="hours">
+      <h2>시간별 예보</h2>
+      <div class="hours"><div class="hstrip" id="hours"></div></div>
+    </section>
+    <section class="panel card" data-id="days"><h2>7일 예보</h2><div id="days"></div></section>
+    <section class="panel card" data-id="dets"><h2>상세 정보</h2><div class="dets" id="dets"></div></section>
   </div>
+  <p class="hint">항목을 4초 동안 꾹 누르고 있으면 위아래로 옮길 수 있어요.</p>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <p class="foot" id="foot">날씨 데이터: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a></p>
 </div>
 
 <script>
+/* Weather scenes: one original landscape (sky, mountains, lake, hill with pines) dressed per weather.
+   sceneSVG(cat, night, animate) -> SVG string, 1600x1000, slice-fills its box.
+   cat: clear | partly | cloudy | rain | snow | storm | fog. With animate, everything loops in 5 s. */
+let sceneN = 0;
+function sceneSVG(cat, night, animate){
+  let seed = 7;
+  const u = 'sc' + (++sceneN) + '_';
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const P = {
+    clear:  [['#2a78dc','#7fc0f5','#a9d8ff'], ['#08122e','#1c2f62','#2c4682']],
+    partly: [['#3a7cc8','#8cbbe4','#b7d6ef'], ['#0d1733','#22355f','#33496f']],
+    cloudy: [['#5f7287','#98a8b8','#c0cad3'], ['#151c29','#2c3646','#3d4859']],
+    rain:   [['#34445a','#5f7288','#8395a8'], ['#10161f','#212c3b','#2f3b4c']],
+    snow:   [['#7189a6','#a9bcd0','#d4dfea'], ['#1a2335','#33435e','#4b5d7a']],
+    storm:  [['#1b202b','#363f50','#556074'], ['#0c0f15','#1c222d','#2e3644']],
+    fog:    [['#87929d','#aeb7bf','#cfd5da'], ['#1d2228','#3a4249','#525a62']]
+  }[cat] || [['#3a7cc8','#8cbbe4','#b7d6ef'], ['#0d1733','#22355f','#33496f']];
+  const [s1, s2, s3] = P[night ? 1 : 0];
+  const snowy = cat === 'snow';
+  const dim = night ? 0.55 : 1;
+  const mix = (a, b, t) => { const p = h => [1,3,5].map(i => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b);
+    return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+  const far = mix(s2, night ? '#0a1020' : '#3d5a80', 0.45), near = mix(s2, night ? '#070b16' : '#2b4766', 0.65);
+  const lake1 = mix(s1, '#0b2a4a', night ? 0.5 : 0.25), lake2 = mix(s3, '#1d4f7a', 0.35);
+  const hill1 = snowy ? (night ? '#5d6c84' : '#e9eff6') : (night ? '#0b1322' : mix('#2d5a52', s1, 0.2));
+  const hill2 = snowy ? (night ? '#46546b' : '#cfdbe7') : (night ? '#060b15' : mix('#1f443f', s1, 0.15));
+  const pine = snowy ? (night ? '#26313f' : '#4b6a73') : (night ? '#03070f' : '#173731');
+  const cls = n => animate ? ` class="${n}"` : '';
+  const out = [];
+
+  out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">`);
+  out.push(`<defs>
+    <linearGradient id="${u}sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s1}"/><stop offset=".55" stop-color="${s2}"/><stop offset="1" stop-color="${s3}"/></linearGradient>
+    <linearGradient id="${u}lk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lake2}"/><stop offset="1" stop-color="${lake1}"/></linearGradient>
+    <linearGradient id="${u}hl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hill1}"/><stop offset="1" stop-color="${hill2}"/></linearGradient>
+    <radialGradient id="${u}gl"><stop offset="0" stop-color="${night ? '#fff6d8' : '#fff3c4'}" stop-opacity=".75"/><stop offset=".35" stop-color="${night ? '#fff6d8' : '#ffe9a0'}" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>`);
+  if (animate) out.push(`<style>
+    .drift{animation:dr 5s ease-in-out infinite alternate}.drift2{animation:dr2 5s ease-in-out infinite alternate}
+    @keyframes dr{to{transform:translateX(46px)}}@keyframes dr2{to{transform:translateX(-34px)}}
+    .pulse{transform-box:fill-box;transform-origin:center;animation:pu 5s ease-in-out infinite}@keyframes pu{50%{transform:scale(1.12);opacity:.8}}
+    .tw{animation:tw 5s ease-in-out infinite}@keyframes tw{50%{opacity:.15}}
+    .rain{animation:rn .5s linear infinite}@keyframes rn{to{transform:translate(-32px,120px)}}
+    .snowf{animation:sn 5s linear infinite}@keyframes sn{to{transform:translate(40px,250px)}}
+    .flash{opacity:0;animation:fl 5s linear infinite}@keyframes fl{0%,62%,70%,74%,100%{opacity:0}64%,72%{opacity:1}}
+    .fogb{animation:fg 5s ease-in-out infinite alternate}@keyframes fg{to{transform:translateX(-80px)}}
+    .shim{animation:sh 5s ease-in-out infinite}@keyframes sh{50%{opacity:.25}}
+    @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+  </style>`);
+
+  // sky
+  out.push(`<rect width="1600" height="1000" fill="url(#${u}sk)"/>`);
+  if (cat === 'storm') out.push(`<rect width="1600" height="1000" fill="#dfe8ff"${cls('flash')} opacity="${animate ? 0 : 0}"/>`);
+
+  // stars
+  if (night && (cat === 'clear' || cat === 'partly')){
+    const st = [];
+    for (let i = 0; i < 90; i++){
+      const x = rnd() * 1600, y = rnd() * 470, r = 0.8 + rnd() * 1.8;
+      st.push(`<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${r.toFixed(1)}" fill="#fff" opacity="${(0.4 + rnd() * 0.6).toFixed(2)}"${animate && i % 3 === 0 ? ` class="tw" style="animation-delay:-${(rnd() * 5).toFixed(1)}s"` : ''}/>`);
+    }
+    out.push(st.join(''));
+  }
+
+  // sun / moon
+  const showOrb = cat === 'clear' || cat === 'partly' || (cat === 'fog' && !night);
+  if (showOrb){
+    out.push(`<circle cx="1180" cy="300" r="260" fill="url(#${u}gl)"${cls('pulse')}/>`);
+    if (night) out.push(`<mask id="${u}mm"><rect x="-80" y="-80" width="160" height="160" fill="#fff"/><circle cx="24" cy="-16" r="50" fill="#000"/></mask><g transform="translate(1180 300)"><circle r="56" fill="#f6efd2" mask="url(#${u}mm)"/></g>`);
+    else out.push(`<circle cx="1180" cy="300" r="68" fill="${cat === 'fog' ? '#fff6e0' : '#fff2b8'}" opacity="${cat === 'fog' ? .7 : 1}"/>`);
+  }
+
+  // clouds
+  const cloud = (x, y, s, f, o) => `<g transform="translate(${x} ${y}) scale(${s})" fill="${f}" opacity="${o}">
+    <ellipse cx="0" cy="0" rx="150" ry="52"/><ellipse cx="-70" cy="-30" rx="80" ry="60"/><ellipse cx="40" cy="-55" rx="95" ry="75"/><ellipse cx="120" cy="-15" rx="70" ry="45"/></g>`;
+  const cf = night ? ['#3b4a66', '#2c3850'] : ['#ffffff', '#e4ebf2'];
+  if (cat === 'partly'){
+    out.push(`<g${cls('drift')}>${cloud(980, 360, 1.1, cf[0], .92)}${cloud(300, 250, .8, cf[1], .85)}</g>`);
+  } else if (['cloudy', 'rain', 'snow', 'storm'].includes(cat)){
+    const dark = cat === 'rain' || cat === 'storm';
+    const a = night ? '#2a3445' : dark ? '#55657a' : cat === 'snow' ? '#e8eef5' : '#d6dee6';
+    const b = night ? '#1f2735' : dark ? '#435267' : cat === 'snow' ? '#cdd8e4' : '#b9c5d1';
+    out.push(`<g${cls('drift2')}>${cloud(260, 170, 1.4, b, .95)}${cloud(1350, 150, 1.5, b, .95)}${cloud(820, 120, 1.6, b, .9)}</g>`);
+    out.push(`<g${cls('drift')}>${cloud(520, 300, 1.3, a, .95)}${cloud(1120, 330, 1.2, a, .95)}${cloud(80, 360, 1.0, a, .9)}${cloud(1550, 360, 1.0, a, .9)}</g>`);
+  } else if (cat === 'clear' && !night){
+    out.push(`<g${cls('drift')}>${cloud(300, 260, .6, '#ffffff', .55)}</g>`);
+  }
+  if (cat === 'storm'){
+    out.push(`<polygon points="760,330 700,470 745,470 705,600 820,430 770,430 810,330" fill="#ffe680"${cls('flash')} ${animate ? '' : 'opacity="0.9"'}/>`);
+  }
+
+  // mountains
+  out.push(`<path d="M0,560 L120,470 L260,520 L420,410 L600,520 L760,450 L900,530 L1060,430 L1240,520 L1400,455 L1600,540 L1600,610 L0,610Z" fill="${far}" opacity="${cat === 'fog' ? .45 : .9}"/>`);
+  if (snowy) out.push(`<path d="M420,410 L372,443 L400,438 L425,452 L452,436 L470,446Z M1060,430 L1016,462 L1046,455 L1068,468 L1090,452 L1106,460Z M760,450 L725,474 L752,470 L770,478Z" fill="#f3f7fb" opacity=".9"/>`);
+  out.push(`<path d="M0,605 L180,535 L340,590 L520,540 L700,600 L880,548 L1080,608 L1280,556 L1460,606 L1600,578 L1600,640 L0,640Z" fill="${near}" opacity="${cat === 'fog' ? .55 : 1}"/>`);
+
+  // lake + reflections
+  out.push(`<rect y="630" width="1600" height="160" fill="url(#${u}lk)"/>`);
+  if (showOrb) out.push(`<g fill="${night ? '#f6efd2' : '#fff2b8'}"${cls('shim')}><rect x="1130" y="650" width="100" height="4" rx="2" opacity=".7"/><rect x="1110" y="672" width="140" height="4" rx="2" opacity=".5"/><rect x="1145" y="696" width="70" height="3" rx="2" opacity=".45"/><rect x="1120" y="720" width="120" height="3" rx="2" opacity=".3"/></g>`);
+  out.push(`<g fill="#ffffff" opacity="${night ? .12 : .22}"${cls('shim')}><rect x="180" y="668" width="160" height="3" rx="2"/><rect x="520" y="700" width="220" height="3" rx="2"/><rect x="860" y="740" width="150" height="3" rx="2"/><rect x="300" y="752" width="110" height="3" rx="2"/></g>`);
+
+  // foreground hill with pines
+  out.push(`<path d="M0,770 C300,712 600,730 900,770 C1150,800 1400,748 1600,728 L1600,1000 L0,1000Z" fill="url(#${u}hl)"/>`);
+  const tree = (x, y, h) => `<path d="M${x},${y - h} L${x - h * .32},${y - h * .35} L${x - h * .14},${y - h * .38} L${x - h * .4},${y} L${x + h * .4},${y} L${x + h * .14},${y - h * .38} L${x + h * .32},${y - h * .35}Z"/>`;
+  out.push(`<g fill="${pine}">${tree(120, 790, 150)}${tree(200, 778, 110)}${tree(60, 800, 90)}${tree(1440, 760, 160)}${tree(1530, 752, 120)}${tree(1360, 772, 90)}</g>`);
+  if (snowy) out.push(`<g fill="#f6f9fc" opacity=".9">${[[120,790,150],[200,778,110],[1440,760,160],[1530,752,120]].map(([x,y,h]) => `<path d="M${x},${y - h} L${x - h * .18},${y - h * .62} L${x + h * .18},${y - h * .62}Z"/>`).join('')}</g>`);
+
+  // precipitation
+  if (cat === 'rain' || cat === 'storm'){
+    const L = [];
+    for (let r = -1; r < 9; r++) for (let c = 0; c < 26; c++){
+      const x = c * 66 + (r % 2) * 33 + 20 - r * 32, y = r * 120 + (c * 37) % 120;
+      L.push(`<line x1="${x}" y1="${y}" x2="${x - 12}" y2="${y + 44}"/>`);
+    }
+    out.push(`<g stroke="#cfe6ff" stroke-width="2.6" stroke-linecap="round" opacity="${night ? .35 : .55}"><g${cls('rain')}>${L.join('')}</g></g>`);
+  }
+  if (cat === 'snow'){
+    const F = [];
+    for (let r = -1; r < 5; r++) for (let c = 0; c < 18; c++){
+      const x = c * 92 + (r % 2) * 46 - r * 40, y = r * 250 + (c * 71) % 250, rr = 3 + ((c + r) % 3) * 1.6;
+      F.push(`<circle cx="${x}" cy="${y}" r="${rr}"/>`);
+    }
+    out.push(`<g fill="#ffffff" opacity=".85"><g${cls('snowf')}>${F.join('')}</g></g>`);
+  }
+  if (cat === 'fog'){
+    out.push(`<g fill="#ffffff" opacity="${night ? .12 : .35}"${cls('fogb')}><rect x="-100" y="520" width="1900" height="46" rx="23"/><rect x="-200" y="610" width="1700" height="60" rx="30"/><rect x="100" y="720" width="1800" height="52" rx="26"/></g>`);
+  }
+  out.push(`</svg>`);
+  return out.join('\n');
+}
+
 {
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -289,6 +435,8 @@ function render(){
   $('#cond').textContent = label;
   $('#hl').textContent = `최고 ${deg(d.daily.temperature_2m_max[0])} · 최저 ${deg(d.daily.temperature_2m_min[0])} · 체감 ${deg(c.apparent_temperature)}`;
   $('#big').innerHTML = icon(cat, day);
+  const sk = cat + (day ? 'd' : 'n');
+  if (state.sceneKey !== sk){ state.sceneKey = sk; $('#scene').innerHTML = sceneSVG(cat, !day, true); }
   document.title = `${p.name} ${deg(c.temperature_2m)} ${label}`;
   renderAir(); renderHours(d); renderDays(d); renderDetails(d);
   $('#unit').textContent = '°' + state.unit;
@@ -462,6 +610,73 @@ $('#loc').addEventListener('click', () => {
     {timeout: 10000}
   );
 });
+
+/* ---------- reorder cards: hold 4 s, then drag or use ▲▼ ---------- */
+const HOLD_MS = 4000;
+const cardsBox = $('#cards');
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 1800); }
+function saveOrder(){ store.set('order', [...cardsBox.children].map(c => c.dataset.id)); }
+(function restoreOrder(){
+  const order = store.get('order', null);
+  if (Array.isArray(order)) order.forEach(id => { const c = cardsBox.querySelector(`[data-id="${id}"]`); if (c) cardsBox.appendChild(c); });
+})();
+cardsBox.querySelectorAll('.card').forEach(c => {
+  c.insertAdjacentHTML('afterbegin', '<div class="hold"><i></i></div><div class="mv"><button data-mv="-1" aria-label="위로">▲</button><button data-mv="1" aria-label="아래로">▼</button><button data-mv="0">완료</button></div>');
+});
+let press = null, drag = null, lifted = null;
+function haptic(){ try{ if (window.Android && window.Android.haptic) window.Android.haptic(); else if (navigator.vibrate) navigator.vibrate(30); }catch(e){} }
+function lift(card){ if (lifted && lifted !== card) drop(); lifted = card; card.classList.add('lift'); haptic(); }
+function drop(){ if (!lifted) return; lifted.classList.remove('lift', 'dragging'); lifted.style.transform = ''; lifted = null; saveOrder(); toast('순서를 저장했어요'); }
+function cancelPress(){ if (!press) return; clearTimeout(press.timer); press.card.classList.remove('pressing'); press = null; }
+function move(card, dir){
+  if (dir < 0 && card.previousElementSibling) cardsBox.insertBefore(card, card.previousElementSibling);
+  if (dir > 0 && card.nextElementSibling) cardsBox.insertBefore(card.nextElementSibling, card);
+  card.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+cardsBox.addEventListener('contextmenu', e => e.preventDefault());
+cardsBox.addEventListener('click', e => {
+  const b = e.target.closest('[data-mv]'); if (!b) return;
+  const card = b.closest('.card'), d = +b.dataset.mv;
+  if (d === 0) drop(); else move(card, d);
+});
+cardsBox.addEventListener('pointerdown', e => {
+  if (e.target.closest('.mv, a, button, input')) return;
+  const card = e.target.closest('.card'); if (!card) return;
+  if (lifted === card){ drag = {card, y: e.clientY, moved:false}; card.classList.add('dragging'); return; }
+  if (lifted) drop();
+  cancelPress();
+  card.classList.add('pressing');
+  press = {card, x: e.clientX, y: e.clientY, timer: setTimeout(() => {
+    card.classList.remove('pressing'); press = null;
+    lift(card); drag = {card, y: lastY, moved:false}; card.classList.add('dragging');
+  }, HOLD_MS)};
+  lastY = e.clientY;
+});
+let lastY = 0;
+window.addEventListener('pointermove', e => {
+  lastY = e.clientY;
+  if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) cancelPress();
+  if (!drag) return;
+  const card = drag.card;
+  let dy = e.clientY - drag.y;
+  if (Math.abs(dy) > 6) drag.moved = true;
+  const prev = card.previousElementSibling, next = card.nextElementSibling;
+  if (prev && dy < -prev.offsetHeight / 2){ const t = card.offsetTop; cardsBox.insertBefore(card, prev); drag.y += card.offsetTop - t; dy = e.clientY - drag.y; haptic(); }
+  else if (next && dy > next.offsetHeight / 2){ const t = card.offsetTop; cardsBox.insertBefore(next, card); drag.y += card.offsetTop - t; dy = e.clientY - drag.y; haptic(); }
+  card.style.transform = `translateY(${dy}px) scale(1.02)`;
+});
+function endPointer(){
+  cancelPress();
+  if (!drag) return;
+  const {card, moved} = drag; drag = null;
+  card.classList.remove('dragging'); card.style.transform = '';
+  if (moved) drop();   // dragged: done. Not moved: stay selected for ▲▼ / 완료
+}
+window.addEventListener('pointerup', endPointer);
+window.addEventListener('pointercancel', endPointer);
+// keep the page from scrolling while a card is being dragged
+document.addEventListener('touchmove', e => { if (drag || press) { if (drag) e.preventDefault(); } }, {passive:false});
+document.addEventListener('pointerdown', e => { if (lifted && !e.target.closest('.card')) drop(); });
 
 markChips();
 loadPlace(state.place);

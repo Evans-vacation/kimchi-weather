@@ -28,8 +28,17 @@ enum class Kind(val layout: Int) {
     LARGE(R.layout.widget_large)
 }
 
-/** Look of one widget, chosen in WidgetConfigActivity. transparency: 0 (solid) – 100 (clear). */
-data class WStyle(val transparency: Int = 0, val font: String = "default", val scale: Float = 1f)
+/**
+ * Look of one widget, chosen in WidgetConfigActivity.
+ * transparency: 0 (solid) – 100 (clear). bg: "scene" (weather picture), "auto" (weather colour), "color" (own colour).
+ */
+data class WStyle(
+    val transparency: Int = 0,
+    val font: String = "default",
+    val scale: Float = 1f,
+    val bg: String = "scene",
+    val color: Int = 0xFF2F6AA6.toInt()
+)
 
 object WidgetPrefs {
     private const val FILE = "nalssi_widgets"
@@ -43,24 +52,32 @@ object WidgetPrefs {
         "mono" to "고정폭"
     )
     val SIZES = listOf(0.85f to "작게", 1f to "보통", 1.15f to "크게", 1.3f to "아주 크게")
+    val BACKGROUNDS = listOf("scene" to "날씨 그림 (자동)", "auto" to "날씨 색 (자동)", "color" to "내가 고른 색")
+    val COLORS = listOf(
+        0xFF1F2A44, 0xFF2F6AA6, 0xFF3A8FB7, 0xFF2E8B7A, 0xFF3B7D4F, 0xFF5B4B8A,
+        0xFF8E4B7E, 0xFFB5546B, 0xFFC0703A, 0xFF8A6B3E, 0xFF4A4F57, 0xFF16181C
+    ).map { it.toInt() }
 
     fun get(ctx: Context, id: Int): WStyle {
         val p = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
         return WStyle(
             p.getInt("t_$id", 0).coerceIn(0, 100),
             p.getString("f_$id", "default") ?: "default",
-            p.getFloat("s_$id", 1f)
+            p.getFloat("s_$id", 1f),
+            p.getString("b_$id", "scene") ?: "scene",
+            p.getInt("c_$id", 0xFF2F6AA6.toInt())
         )
     }
 
     fun save(ctx: Context, id: Int, s: WStyle) {
         ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
-            .putInt("t_$id", s.transparency).putString("f_$id", s.font).putFloat("s_$id", s.scale).apply()
+            .putInt("t_$id", s.transparency).putString("f_$id", s.font).putFloat("s_$id", s.scale)
+            .putString("b_$id", s.bg).putInt("c_$id", s.color).apply()
     }
 
     fun delete(ctx: Context, id: Int) {
         ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
-            .remove("t_$id").remove("f_$id").remove("s_$id").apply()
+            .remove("t_$id").remove("f_$id").remove("s_$id").remove("b_$id").remove("c_$id").apply()
     }
 
     fun typeface(font: String): Typeface = when (font) {
@@ -194,8 +211,26 @@ object WidgetUpdater {
             v.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, sp * st.scale)
         }
 
-        rv.setImageViewResource(R.id.bg, Wx.bg(w.code, w.isDay))
-        rv.setInt(R.id.bg, "setImageAlpha", (255 * (100 - st.transparency) / 100f).roundToInt())
+        val alpha = (255 * (100 - st.transparency) / 100f).roundToInt()
+        when (st.bg) {
+            "color" -> {
+                rv.setImageViewResource(R.id.bg, R.drawable.bg_solid)
+                rv.setInt(R.id.bg, "setColorFilter", st.color)
+                rv.setViewVisibility(R.id.scrim, View.GONE)
+            }
+            "auto" -> {
+                rv.setImageViewResource(R.id.bg, Wx.bg(w.code, w.isDay))
+                rv.setInt(R.id.bg, "setColorFilter", 0)
+                rv.setViewVisibility(R.id.scrim, View.GONE)
+            }
+            else -> {
+                rv.setImageViewResource(R.id.bg, Wx.scene(w.code, w.isDay))
+                rv.setInt(R.id.bg, "setColorFilter", 0)
+                rv.setViewVisibility(R.id.scrim, View.VISIBLE)
+                rv.setInt(R.id.scrim, "setImageAlpha", alpha)
+            }
+        }
+        rv.setInt(R.id.bg, "setImageAlpha", alpha)
         rv.setOnClickPendingIntent(R.id.root, openApp(ctx))
         rv.setImageViewResource(R.id.icon, Wx.icon(w.code, w.isDay))
 

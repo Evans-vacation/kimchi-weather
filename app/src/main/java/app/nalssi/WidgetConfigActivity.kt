@@ -3,6 +3,7 @@ package app.nalssi
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
@@ -33,6 +34,10 @@ class WidgetConfigActivity : Activity() {
     private var style = WStyle()
     private lateinit var preview: FrameLayout
     private lateinit var alphaLabel: TextView
+    private lateinit var colorBox: LinearLayout
+    private val swatches = ArrayList<Pair<View, Int>>()
+    private var bgGroup: RadioGroup? = null
+    private val bgButtons = HashMap<String, Int>()
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).roundToInt()
 
@@ -94,6 +99,62 @@ class WidgetConfigActivity : Activity() {
             Kind.LARGE -> 380
         }
         col.addView(preview, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(previewHeight + 32)))
+
+        // Background
+        section(col, "배경")
+        val group = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        bgGroup = group
+        WidgetPrefs.BACKGROUNDS.forEach { (key, label) ->
+            val rb = RadioButton(this).apply {
+                id = View.generateViewId()
+                text = label
+                textSize = 16f
+                minHeight = dp(48)
+                isChecked = key == style.bg
+                setOnClickListener { setBg(key) }
+            }
+            bgButtons[key] = rb.id
+            group.addView(rb)
+        }
+        col.addView(group)
+
+        colorBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(6), 0, 0) }
+        WidgetPrefs.COLORS.chunked(6).forEach { rowColors ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            rowColors.forEach { c ->
+                val sw = View(this).apply {
+                    contentDescription = "배경 색"
+                    setOnClickListener { pickColor(c) }
+                }
+                swatches.add(sw to c)
+                row.addView(sw, LinearLayout.LayoutParams(0, dp(44), 1f).apply { setMargins(dp(4), dp(4), dp(4), dp(4)) })
+            }
+            colorBox.addView(row)
+        }
+        colorBox.addView(TextView(this).apply {
+            text = "직접 고르기 (색상 · 밝기)"
+            alpha = 0.7f
+            setPadding(0, dp(10), 0, 0)
+        })
+        val hsv = FloatArray(3)
+        Color.colorToHSV(style.color, hsv)
+        val hue = SeekBar(this).apply { max = 360; progress = hsv[0].roundToInt() }
+        val light = SeekBar(this).apply { max = 100; progress = (hsv[2] * 100).roundToInt().coerceIn(20, 85) }
+        val custom = object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar, value: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                val v = light.progress.coerceIn(20, 85) / 100f
+                pickColor(Color.HSVToColor(floatArrayOf(hue.progress.toFloat(), 0.55f, v)))
+            }
+            override fun onStartTrackingTouch(sb: SeekBar) {}
+            override fun onStopTrackingTouch(sb: SeekBar) {}
+        }
+        hue.setOnSeekBarChangeListener(custom)
+        light.setOnSeekBarChangeListener(custom)
+        colorBox.addView(hue, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)))
+        colorBox.addView(light, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)))
+        col.addView(colorBox)
+        paintSwatches()
 
         // Transparency
         alphaLabel = section(col, "")
@@ -187,6 +248,30 @@ class WidgetConfigActivity : Activity() {
         }
         parent.addView(t)
         return t
+    }
+
+    private fun setBg(key: String) {
+        style = style.copy(bg = key)
+        bgButtons[key]?.let { bgGroup?.check(it) }
+        paintSwatches()
+        refreshPreview()
+    }
+
+    private fun pickColor(c: Int) {
+        style = style.copy(color = c)
+        setBg("color")
+    }
+
+    private fun paintSwatches() {
+        colorBox.alpha = if (style.bg == "color") 1f else 0.45f
+        for ((v, c) in swatches) {
+            v.background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(12).toFloat()
+                setColor(c)
+                if (style.bg == "color" && c == style.color) setStroke(dp(3), 0xFF888888.toInt())
+            }
+        }
     }
 
     private fun updateAlphaLabel() {
