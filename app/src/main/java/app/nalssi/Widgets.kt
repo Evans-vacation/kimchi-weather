@@ -200,15 +200,16 @@ object WidgetUpdater {
         rv.setImageViewResource(R.id.icon, Wx.icon(w.code, w.isDay))
 
         val today = w.days.firstOrNull()
-        val tempSp = when (kind) { Kind.BAR -> 22f; Kind.SMALL -> 42f; else -> 40f }
-        text(rv, R.id.city, place.name, if (kind == Kind.BAR) 13f else 14f)
+        val tempSp = when (kind) { Kind.BAR -> 26f; Kind.SMALL -> 42f; else -> 40f }
+        text(rv, R.id.city, place.name, if (kind == Kind.BAR) 16f else 14f)
         text(rv, R.id.temp, deg(w.temp), tempSp)
-        text(rv, R.id.cond, Wx.label(w.code), when (kind) { Kind.BAR -> 11f; Kind.SMALL -> 14f; else -> 13f })
+        text(rv, R.id.cond, Wx.label(w.code), when (kind) { Kind.BAR -> 13f; Kind.SMALL -> 14f; else -> 13f })
 
         if (kind == Kind.BAR) {
-            text(rv, R.id.hl, if (today != null) "${deg(today.max)} / ${deg(today.min)}" else "", 12f)
+            text(rv, R.id.hl, if (today != null) "${deg(today.max)} / ${deg(today.min)}" else "", 14f)
+            text(rv, R.id.tip, Wx.advice(w), 12f)
             val step = Wx.dustStep(w.pm10, w.pm25)
-            text(rv, R.id.dust, if (step != null) "미세 ${Wx.dustWord(step)}" else "", 11f)
+            text(rv, R.id.dust, if (step != null) "미세 ${Wx.dustWord(step).removePrefix("아주 ")}" else "", 13f)
             if (step == null) {
                 rv.setViewVisibility(R.id.meter, View.GONE)
             } else {
@@ -227,9 +228,9 @@ object WidgetUpdater {
                 } catch (e: Exception) {
                     ""
                 }
-                text(item, R.id.w_day, name, 10f)
+                text(item, R.id.w_day, name, 12f)
                 item.setImageViewResource(R.id.w_icon, Wx.icon(d.code, true))
-                text(item, R.id.w_temp, deg(d.max), 10f)
+                text(item, R.id.w_temp, deg(d.max), 12f)
                 rv.addView(R.id.week, item)
             }
             return rv

@@ -88,7 +88,7 @@ class WidgetConfigActivity : Activity() {
             setPadding(dp(16), dp(16), dp(16), dp(16))
         }
         val previewHeight = when (kind) {
-            Kind.BAR -> 76
+            Kind.BAR -> 90
             Kind.SMALL -> 170
             Kind.MEDIUM -> 175
             Kind.LARGE -> 380

@@ -243,6 +243,50 @@ object Wx {
         else -> "위험"
     }
 
+    /**
+     * A short tip for today that fits two widget lines, e.g. "우산 챙기고 패딩 입어요".
+     * First what's coming (storm, snow, rain, bad air), then what to wear.
+     */
+    fun advice(w: Weather): String {
+        val next = w.hours.take(12)
+        val pop = next.maxOfOrNull { it.pop } ?: 0
+        val codes = listOf(w.code) + next.map { it.code }
+        val today = w.days.firstOrNull()
+        val dust = dustStep(w.pm10, w.pm25)
+
+        // (joined form, standalone form)
+        val coming: Pair<String, String>? = when {
+            codes.any { it >= 95 } -> "천둥번개 조심," to "천둥번개 조심하세요"
+            codes.any { it == 75 || it == 86 } -> "겨울타이어 챙기고" to "겨울타이어 챙기세요"
+            codes.any { it in 71..77 || it == 85 } && pop >= 50 -> "빙판길 조심," to "빙판길 조심하세요"
+            (codes.any { it in 51..67 || it in 80..82 } && pop >= 60) || w.code in 61..67 || w.code in 80..82 ->
+                "우산 챙기고" to "우산 꼭 챙기세요"
+            pop >= 40 -> "작은 우산 챙기고" to "작은 우산 챙기세요"
+            dust != null && dust >= 6 -> "마스크 쓰고" to "마스크 꼭 쓰세요"
+            else -> null
+        }
+
+        val feels = w.feels
+        val max = today?.max ?: w.temp
+        val min = today?.min ?: w.temp
+        val wear: String? = when {
+            feels <= -10 -> "패딩·장갑 꼭 챙겨요"
+            feels <= -3 -> "패딩 입어요"
+            feels <= 5 -> "두꺼운 외투 입어요"
+            max >= 33 -> "물 자주 마셔요"
+            max >= 28 -> "시원하게 입어요"
+            max - min >= 10 -> "겉옷 챙겨요"
+            feels <= 12 -> "가벼운 겉옷 챙겨요"
+            else -> null
+        }
+        return when {
+            coming != null && wear != null -> "${coming.first} $wear"
+            coming != null -> coming.second
+            wear != null -> wear
+            else -> "외출하기 좋은 날이에요"
+        }
+    }
+
     /** Korean air-quality grades (환경부 기준). */
     fun dust(v: Double?, pm10: Boolean): String {
         if (v == null) return "-"
