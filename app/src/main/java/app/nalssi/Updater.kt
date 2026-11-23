@@ -15,9 +15,10 @@ import java.net.URL
 
 /**
  * Self-update from this app's GitHub Releases (repo is baked in at build time).
- * - In the app: a dialog offers the update; Android asks once to confirm.
- * - In the background (on widget refresh, at most every 6 h): installs silently when Android
- *   allows it — Android 12+, and the app itself installed the current version.
+ * - In the app: a dialog offers the update, then Android's own install prompt confirms it.
+ * - In the background (on widget refresh, at most every 6 h): tries a silent install where the
+ *   phone allows it. Samsung blocks silent self-updates ("Self update is blocked…"); after the
+ *   first such refusal the background path switches itself off and the in-app prompt is used.
  */
 object Updater {
 
@@ -55,7 +56,7 @@ object Updater {
     }
 
     /** Blocking. Downloads the APK and hands it to Android's package installer. */
-    fun install(ctx: Context, r: Release) {
+    fun install(ctx: Context, r: Release, silent: Boolean) {
         val file = File(ctx.cacheDir, "update.apk")
         download(r.url, file)
 
@@ -63,7 +64,10 @@ object Updater {
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         params.setAppPackageName(ctx.packageName)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            params.setRequireUserAction(
+                if (silent) PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED
+                else PackageInstaller.SessionParams.USER_ACTION_REQUIRED
+            )
         }
         val id = installer.createSession(params)
         installer.openSession(id).use { session ->
@@ -75,7 +79,8 @@ object Updater {
             }
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or
                 (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
-            val status = PendingIntent.getBroadcast(ctx, id, Intent(ctx, InstallReceiver::class.java), flags)
+            val result = Intent(ctx, InstallReceiver::class.java).putExtra(InstallReceiver.EXTRA_SILENT, silent)
+            val status = PendingIntent.getBroadcast(ctx, id, result, flags)
             session.commit(status.intentSender)
         }
     }
@@ -85,6 +90,7 @@ object Updater {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
+        if (prefs.getBoolean("silent_blocked", false)) return
         if (now - prefs.getLong("last", 0L) < BACKGROUND_INTERVAL) return
         prefs.edit().putLong("last", now).apply()
         if (!ctx.packageManager.canRequestPackageInstalls()) return
@@ -96,10 +102,15 @@ object Updater {
         if (installedBy != ctx.packageName) return // silent install not allowed yet
         try {
             val r = check() ?: return
-            install(ctx, r)
+            install(ctx, r, silent = true)
         } catch (e: Exception) {
             // try again next time
         }
+    }
+
+    /** Remember that this phone refuses silent self-updates. */
+    fun markSilentBlocked(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("silent_blocked", true).apply()
     }
 
     private fun download(url: String, to: File) {
@@ -134,6 +145,7 @@ object Updater {
 /** Receives the installer's result. */
 class InstallReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
+        val silent = intent.getBooleanExtra(EXTRA_SILENT, false)
         when (intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)) {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 // Android wants a tap to confirm; only show it while the app is open.
@@ -147,11 +159,18 @@ class InstallReceiver : BroadcastReceiver() {
                 }
             }
             PackageInstaller.STATUS_SUCCESS -> Unit
-            else -> if (MainActivity.inForeground) {
+            else -> if (silent) {
+                // Background attempt refused (e.g. Samsung): stop trying silently; the app will ask instead.
+                Updater.markSilentBlocked(ctx)
+            } else if (MainActivity.inForeground) {
                 val msg = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: ""
                 Toast.makeText(ctx, "업데이트 실패 $msg", Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_SILENT = "silent"
     }
 
     @Suppress("DEPRECATION")

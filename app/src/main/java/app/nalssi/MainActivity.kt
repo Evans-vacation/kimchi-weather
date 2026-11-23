@@ -149,7 +149,7 @@ class MainActivity : Activity() {
         val ctx = applicationContext
         Thread {
             try {
-                Updater.install(ctx, r)
+                Updater.install(ctx, r, silent = false)
             } catch (e: Exception) {
                 runOnUiThread { Toast.makeText(ctx, "업데이트를 내려받지 못했어요", Toast.LENGTH_LONG).show() }
             }
