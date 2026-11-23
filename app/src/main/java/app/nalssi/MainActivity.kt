@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -19,6 +20,7 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.Toast
 import org.json.JSONObject
+import java.util.Locale
 
 /** The app screen is the bundled web weather app (assets/index.html) in a WebView. */
 class MainActivity : Activity() {
@@ -164,6 +166,17 @@ class MainActivity : Activity() {
 
     /** Called from the page: window.Android.setPlace(JSON.stringify(place)). */
     inner class Bridge {
+        /** Async: answers with window.__geoDone(id, json|null). */
+        @JavascriptInterface
+        fun reverseGeocode(lat: Double, lon: Double, id: String) {
+            Thread {
+                val result = try { lookupDong(lat, lon) } catch (e: Exception) { null }
+                val payload = if (result == null) "null" else JSONObject.quote(result.toString())
+                val js = "window.__geoDone && window.__geoDone(${JSONObject.quote(id)}, $payload)"
+                web.post { web.evaluateJavascript(js, null) }
+            }.start()
+        }
+
         @JavascriptInterface
         fun setPlace(json: String) {
             try {
@@ -176,6 +189,22 @@ class MainActivity : Activity() {
                 // ignore malformed input
             }
         }
+    }
+
+    /** GPS → 동 이름 with the phone's built-in geocoder. */
+    @Suppress("DEPRECATION")
+    private fun lookupDong(lat: Double, lon: Double): JSONObject? {
+        if (!Geocoder.isPresent()) return null
+        val a = Geocoder(this, Locale.KOREA).getFromLocation(lat, lon, 1)?.firstOrNull() ?: return null
+        val tokens = (a.getAddressLine(0) ?: "").split(" ").filter { it.isNotBlank() }
+        val dongRe = Regex("^[가-힣0-9·.]+(동|읍|면|가)$")
+        val dong = listOfNotNull(a.thoroughfare, a.subLocality, a.locality).firstOrNull { dongRe.matches(it) }
+            ?: tokens.firstOrNull { dongRe.matches(it) && it != "대한민국" }
+            ?: ""
+        val gu = tokens.lastOrNull { it.endsWith("구") || it.endsWith("군") } ?: a.subLocality ?: ""
+        val city = tokens.firstOrNull { it.endsWith("시") || it.endsWith("도") } ?: a.adminArea ?: ""
+        if (dong.isEmpty() && gu.isEmpty()) return null
+        return JSONObject().put("dong", dong).put("gu", gu).put("city", city)
     }
 
     companion object {
