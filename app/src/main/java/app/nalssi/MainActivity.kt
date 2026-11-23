@@ -31,6 +31,17 @@ class MainActivity : Activity() {
     private var geoCallback: GeolocationPermissions.Callback? = null
     private var geoOrigin: String = ""
     private var updateChecked = false
+    private var insetTop = 0
+    private var insetBottom = 0
+
+    private fun pushInsets() {
+        if (!::web.isInitialized) return
+        val d = resources.displayMetrics.density
+        val js = "document.documentElement.style.setProperty('--sat','${(insetTop / d).toInt()}px');" +
+            "document.documentElement.style.setProperty('--sab','${(insetBottom / d).toInt()}px');" +
+            "window.layoutScene && window.layoutScene();"
+        web.post { web.evaluateJavascript(js, null) }
+    }
     private var pendingRelease: Updater.Release? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,11 +52,15 @@ class MainActivity : Activity() {
         root.addView(web, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
         setContentView(root)
 
-        // Android 15+ draws edge-to-edge: keep the page clear of the status and navigation bars.
+        // Edge-to-edge: the page (and its landscape) runs under the status and navigation bars;
+        // the page pads its own content with --sat / --sab so nothing sits under them.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             root.setOnApplyWindowInsetsListener { v, insets ->
                 val bars = insets.getInsets(WindowInsets.Type.systemBars())
-                v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+                v.setPadding(bars.left, 0, bars.right, 0)
+                insetTop = bars.top
+                insetBottom = bars.bottom
+                pushInsets()
                 insets
             }
         }
@@ -85,6 +100,10 @@ class MainActivity : Activity() {
 
         // Links (e.g. the Open-Meteo credit) open in the browser.
         web.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String?) {
+                pushInsets()
+            }
+
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 return try {
                     startActivity(Intent(Intent.ACTION_VIEW, request.url))

@@ -20,15 +20,15 @@ body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.55 "IBM Plex Sans KR
 /* Phone: the whole picture sits across the top, full width, ending where the cards start (--sr).
    The sky above it is filled with the picture's own top colour. It fades as you scroll. */
 .scene{position:fixed;top:0;left:0;right:0;height:var(--sr,100vh);z-index:-1;overflow:hidden;pointer-events:none;
-  background:var(--stop,#1f6fc5);will-change:opacity,transform;filter:brightness(1.18) saturate(1.05)}
+  background:var(--stop,#1f6fc5);filter:brightness(1.18) saturate(1.05)}
 .scene svg{position:absolute;left:50%;bottom:0;width:104%;height:auto;aspect-ratio:1.6;transform:translateX(-50%);display:block}
-.scene::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22) 0,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 88%,rgba(0,0,0,.22) 100%)}
+.scene::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12) 0,rgba(0,0,0,0) 20%,rgba(0,0,0,0) 88%,rgba(0,0,0,.22) 100%)}
 @media(min-width:761px){.scene{height:100vh}.scene svg{left:0;width:100%;height:100%;aspect-ratio:auto;transform:none}}
 /* readable on bright scenes: every text gets a soft shadow, big numbers a stronger one */
 body{text-shadow:0 1px 2px rgba(0,0,0,.45),0 0 8px rgba(0,0,0,.18)}
 .hero{text-shadow:0 2px 4px rgba(0,0,0,.4),0 0 18px rgba(0,0,0,.25)}
 .badge,.toast,.mv button{text-shadow:none}
-.wrap{max-width:1100px;margin:0 auto;padding:clamp(16px,3vw,32px) max(4vw,16px) 40px}
+.wrap{max-width:1100px;margin:0 auto;padding:calc(var(--sat,0px) + clamp(16px,3vw,32px)) max(4vw,16px) calc(var(--sab,0px) + 40px)}
 button,input{font:inherit;color:inherit}
 .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .search{position:relative;flex:1 1 auto;min-width:0}
@@ -118,6 +118,7 @@ button,input{font:inherit;color:inherit}
 .sclose{width:100%;margin-top:10px;background:#3d8bff;border-color:#3d8bff}
 .snote{font-size:13px;color:var(--soft);margin:10px 0 0;min-height:1em}
 .nmock{position:fixed;left:50%;top:10px;width:min(440px,calc(100% - 20px));transform:translate(-50%,-140%);z-index:40;background:rgba(245,247,250,.97);color:#111;text-shadow:none;border-radius:20px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.35);transition:transform .35s ease;display:flex;gap:10px}
+.nmock:not(.on){visibility:hidden;box-shadow:none;transition:transform .35s ease,visibility 0s .35s}
 .nmock.on{transform:translate(-50%,0)}
 .nmock .ni{flex:none;width:34px;height:34px;border-radius:10px;background:linear-gradient(#1f6fc5,#5aa9e6);display:grid;place-items:center}
 .nmock .nb{flex:1;min-width:0}.nmock .nh{font-size:12px;color:#666}.nmock b{display:block;font-size:15px;margin-top:1px}
@@ -900,7 +901,7 @@ $('#loc').addEventListener('click', () => {
   );
 });
 
-/* ---------- scene layout: full picture on top, ending at the first card; fades on scroll ---------- */
+/* ---------- scene layout: full picture on top, ending at the first card; stays still while cards scroll over it ---------- */
 function layoutScene(){
   const sc = $('#scene'), cards = $('#cards');
   if (innerWidth > 760){ sc.style.removeProperty('--sr'); cards.style.marginTop = ''; return; }
@@ -909,14 +910,8 @@ function layoutScene(){
   sc.style.setProperty('--sr', Math.round(R) + 'px');
   fadeScene();
 }
-function fadeScene(){
-  const sc = $('#scene'), R = sc.getBoundingClientRect().height || innerHeight;
-  const t = Math.min(scrollY / (R * 0.8), 1);
-  sc.style.opacity = (1 - t).toFixed(3);
-  sc.style.transform = `translateY(${(-scrollY * 0.3).toFixed(1)}px)`;
-}
-let fadeQueued = false;
-addEventListener('scroll', () => { if (fadeQueued) return; fadeQueued = true; requestAnimationFrame(() => { fadeQueued = false; fadeScene(); }); }, {passive:true});
+function fadeScene(){}   // the landscape stays still; the cards slide up over it
+window.layoutScene = layoutScene;
 addEventListener('resize', () => requestAnimationFrame(layoutScene));
 if (document.fonts) document.fonts.ready.then(() => layoutScene());
 
