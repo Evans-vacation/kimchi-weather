@@ -20,6 +20,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.Toast
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
 
@@ -179,6 +180,17 @@ class MainActivity : Activity() {
             }
         }
 
+        /** City / 동 name → places, with the phone's geocoder. Async: window.__geoDone(id, jsonArray|null). */
+        @JavascriptInterface
+        fun searchPlace(q: String, id: String) {
+            Thread {
+                val result = try { lookupName(q) } catch (e: Exception) { null }
+                val payload = if (result == null) "null" else JSONObject.quote(result.toString())
+                val js = "window.__geoDone && window.__geoDone(${JSONObject.quote(id)}, $payload)"
+                web.post { web.evaluateJavascript(js, null) }
+            }.start()
+        }
+
         /** Async: answers with window.__geoDone(id, json|null). */
         @JavascriptInterface
         fun reverseGeocode(lat: Double, lon: Double, id: String) {
@@ -202,6 +214,24 @@ class MainActivity : Activity() {
                 // ignore malformed input
             }
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun lookupName(q: String): JSONArray? {
+        if (!Geocoder.isPresent()) return null
+        val list = Geocoder(this, Locale.KOREA).getFromLocationName(q, 5) ?: return null
+        val out = JSONArray()
+        for (a in list) {
+            if (!a.hasLatitude() || !a.hasLongitude()) continue
+            val name = listOfNotNull(a.featureName, a.thoroughfare, a.subLocality, a.locality, a.adminArea)
+                .firstOrNull { it.isNotBlank() && !it.all { ch -> ch.isDigit() || ch == '-' } } ?: q
+            val admin = listOfNotNull(a.subLocality, a.locality, a.adminArea).firstOrNull { it.isNotBlank() && it != name } ?: ""
+            out.put(
+                JSONObject().put("name", name).put("admin", admin).put("country", a.countryName ?: "")
+                    .put("lat", a.latitude).put("lon", a.longitude)
+            )
+        }
+        return out
     }
 
     /** GPS → 동 이름 with the phone's built-in geocoder. */

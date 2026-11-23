@@ -70,3 +70,9 @@ app/src/main/res/drawable/ic_w_*.xml    날씨 아이콘 (벡터)
 .github/workflows/build.yml             커밋하면 APK 빌드 + Release 발행
   Updater.kt (java/app/nalssi)          새 버전 확인과 자동 설치
 ```
+
+## 데이터 출처
+
+- 날씨·미세먼지: [Open-Meteo](https://open-meteo.com)
+- 동네 검색용 전국 행정동 위치: [admdongkor](https://github.com/vuski/admdongkor) (MIT 라이선스, 2026-10-01 경계 기준)
+- 해외 도시 189곳 위치: [GeoNames](https://www.geonames.org) ([cities.json](https://github.com/lutangar/cities.json), CC BY 4.0)
