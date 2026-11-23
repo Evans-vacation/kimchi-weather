@@ -258,7 +258,7 @@ function render(){
   $('#note').classList.toggle('on', state.demo);
   $('#hero').classList.remove('loading');
   const p = state.place, sub = [p.admin, p.country].filter(Boolean).join(', ');
-  $('#place').innerHTML = esc(p.name) + (sub ? `<small>${esc(sub)}</small>` : '');
+  $('#place').innerHTML = (p.gps ? '📍 ' : '') + esc(p.name) + (sub ? `<small>${esc(sub)}</small>` : '');
   $('#temp').textContent = deg(c.temperature_2m);
   $('#cond').textContent = label;
   $('#hl').textContent = `최고 ${deg(d.daily.temperature_2m_max[0])} · 최저 ${deg(d.daily.temperature_2m_min[0])} · 체감 ${deg(c.apparent_temperature)}`;
@@ -352,11 +352,45 @@ document.addEventListener('click', e => { if (!e.target.closest('.search')) $('#
 $('#chips').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) loadPlace(PRESETS[+b.dataset.i]); });
 
 $('#unit').addEventListener('click', () => { state.unit = state.unit === 'C' ? 'F' : 'C'; store.set('unit', state.unit); render(); });
+/* GPS → 동 이름: phone's geocoder first (Android app), then OpenStreetMap */
+const geoWaiting = {};
+window.__geoDone = (id, json) => { const f = geoWaiting[id]; delete geoWaiting[id]; if (f) f(json ? JSON.parse(json) : null); };
+function nativeName(lat, lon){
+  return new Promise(resolve => {
+    if (!(window.Android && window.Android.reverseGeocode)) return resolve(null);
+    const id = 'g' + Date.now();
+    geoWaiting[id] = resolve;
+    setTimeout(() => { if (geoWaiting[id]){ delete geoWaiting[id]; resolve(null); } }, 8000);
+    try{ window.Android.reverseGeocode(lat, lon, id); }catch(e){ delete geoWaiting[id]; resolve(null); }
+  });
+}
+async function osmName(lat, lon){
+  try{
+    const j = await getJSON(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=16&accept-language=ko`);
+    const a = j.address || {};
+    const dong = [a.quarter, a.suburb, a.neighbourhood, a.village, a.town].find(v => v && /(동|읍|면|가)$/.test(v)) || '';
+    return { dong, gu: a.city_district || a.borough || a.county || '', city: a.city || a.province || a.state || '' };
+  }catch(e){ return null; }
+}
+async function placeName(lat, lon){
+  let n = await nativeName(lat, lon);
+  if (!n || !n.dong){ const m = await osmName(lat, lon); if (m && (m.dong || !n)) n = m; }
+  return n;
+}
 $('#loc').addEventListener('click', () => {
   if (!navigator.geolocation){ $('#loc').textContent = '위치 사용 불가'; return; }
   $('#loc').textContent = '찾는 중…';
   navigator.geolocation.getCurrentPosition(
-    pos => { $('#loc').textContent = '📍 내 위치'; loadPlace({name:'현재 위치', admin:'', country:`${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)}`, lat:pos.coords.latitude, lon:pos.coords.longitude}); },
+    async pos => {
+      const lat = pos.coords.latitude, lon = pos.coords.longitude;
+      $('#loc').textContent = '동 확인 중…';
+      const n = await placeName(lat, lon);
+      $('#loc').textContent = '📍 내 위치';
+      const name = (n && (n.dong || n.gu)) || '현재 위치';
+      const admin = n ? (n.dong ? n.gu : '') : '';
+      const country = n && n.city ? n.city : `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+      loadPlace({name, admin, country, lat, lon, gps:true});
+    },
     () => { $('#loc').textContent = '위치 권한 없음'; setTimeout(() => $('#loc').textContent = '📍 내 위치', 2500); },
     {timeout: 10000}
   );
