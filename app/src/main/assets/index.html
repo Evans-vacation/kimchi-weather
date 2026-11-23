@@ -69,10 +69,30 @@ button,input{font:inherit;color:inherit}
 .det span{font-size:22px;font-weight:600;white-space:nowrap}
 .det small{display:block;color:var(--soft);font-size:13px}
 .arrow{display:inline-block;transition:transform .4s}
+.air{margin-bottom:14px}
+.tip{margin:0 0 12px;font-size:16px}
+.aqgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.aqc{background:rgba(255,255,255,.07);border-radius:14px;padding:12px 14px}
+.aqc b{display:block;font-size:13px;font-weight:400;color:var(--soft)}
+.aqc .row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
+.aqc .val{font-size:26px;font-weight:600;white-space:nowrap}.aqc .val small{font-size:13px;font-weight:400;color:var(--soft)}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:14px;font-weight:600;white-space:nowrap}
+.g0{background:#3d7dff}.g1{background:#25b86a}.g2{background:#f29a1f}.g3{background:#e8484a}
+.scale{position:relative;height:6px;border-radius:3px}
+.scale i{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.25)}
+.aqh{margin-top:14px}
+.aqrow{display:grid;grid-template-columns:4.2em minmax(0,1fr);gap:8px;align-items:end;margin-top:6px;font-size:13px;color:var(--soft)}
+.bars{display:flex;align-items:flex-end;gap:2px;height:40px}
+.bars i{flex:1;border-radius:2px 2px 0 0;min-height:3px}
+.ticks{display:flex;margin-left:calc(4.2em + 8px);font-size:12px;color:var(--soft)}
+.ticks span{flex:1;white-space:nowrap}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--soft)}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:0;background:var(--c)}
 .foot{margin-top:18px;font-size:13px;color:var(--soft)}
 .foot a{color:#fff}
 .loading .temp,.loading .cond{opacity:.4}
 @media(max-width:800px){.grid2{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:420px){.aqgrid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){.hero{grid-template-columns:minmax(0,1fr) auto}.big{width:120px}.cond{font-size:18px}
   .day{grid-template-columns:3em 30px 2.6em 2.6em minmax(30px,1fr) 2.6em;gap:6px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -101,6 +121,12 @@ button,input{font:inherit;color:inherit}
       <div class="hl" id="hl">&nbsp;</div>
     </div>
     <div class="big" id="big"></div>
+  </section>
+
+  <section class="panel air">
+    <h2>미세먼지</h2>
+    <div id="airtop"></div>
+    <div class="aqh" id="airhrs"></div>
   </section>
 
   <section class="panel">
@@ -202,12 +228,12 @@ async function getJSON(url){
 }
 function fcUrl(p){
   return `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}` +
-    '&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl' +
+    '&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl,cloud_cover' +
     '&hourly=temperature_2m,precipitation_probability,weather_code,is_day' +
     '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max' +
     '&wind_speed_unit=ms&timezone=auto&forecast_days=7';
 }
-const aqUrl = p => `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.lat}&longitude=${p.lon}&current=pm10,pm2_5&timezone=auto`;
+const aqUrl = p => `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.lat}&longitude=${p.lon}&current=pm10,pm2_5&hourly=pm10,pm2_5&forecast_days=2&timezone=auto`;
 
 function demoData(){
   const pad = n => String(n).padStart(2,'0');
@@ -241,9 +267,9 @@ async function loadPlace(p){
   markChips();
   try{
     const [w, aq] = await Promise.all([getJSON(fcUrl(p)), getJSON(aqUrl(p)).catch(() => null)]);
-    state.data = w; state.aq = aq && aq.current; state.demo = false;
+    state.data = w; state.aq = aq && aq.current ? aq : null; state.demo = false;
   }catch(e){
-    state.data = demoData(); state.aq = {pm10:38, pm2_5:18}; state.demo = true;
+    state.data = demoData(); state.aq = demoAir(state.data.current.time); state.demo = true;
   }
   render();
 }
@@ -264,7 +290,7 @@ function render(){
   $('#hl').textContent = `최고 ${deg(d.daily.temperature_2m_max[0])} · 최저 ${deg(d.daily.temperature_2m_min[0])} · 체감 ${deg(c.apparent_temperature)}`;
   $('#big').innerHTML = icon(cat, day);
   document.title = `${p.name} ${deg(c.temperature_2m)} ${label}`;
-  renderHours(d); renderDays(d); renderDetails(d);
+  renderAir(); renderHours(d); renderDays(d); renderDetails(d);
   $('#unit').textContent = '°' + state.unit;
   $('#foot').innerHTML = `날씨 데이터: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>` +
     (state.demo ? ' · 예시 데이터' : ` · ${esc(hhmm(c.time))} 기준 (현지 시각)`);
@@ -304,15 +330,56 @@ function renderDays(d){
   }).join('');
 }
 
+const GR = ['좋음','보통','나쁨','매우 나쁨'], GC = ['#3d7dff','#25b86a','#f29a1f','#e8484a'];
+const CUTS = {pm10:[30,80,150], pm25:[15,35,75]};
+function gradeIdx(v, kind){ if (v == null) return -1; const c = CUTS[kind]; let i = 0; while (i < 3 && v > c[i]) i++; return i; }
+function demoAir(curTime){
+  const h = {time:[], pm10:[], pm2_5:[]}, base = curTime.slice(0,11), start = Number(curTime.slice(11,13));
+  for (let k = 0; k < 30; k++){
+    const hr = (start + k) % 24;
+    h.time.push(`${base}${String(hr).padStart(2,"0")}:00`);
+    h.pm10.push(Math.round(38 + 22 * Math.sin((k + 3) / 5))); h.pm2_5.push(Math.round(18 + 12 * Math.sin((k + 2) / 5)));
+  }
+  return { current:{time:curTime, pm10:38, pm2_5:18}, hourly:h };
+}
+function renderAir(){
+  const aq = state.aq;
+  if (!aq || !aq.current || (aq.current.pm10 == null && aq.current.pm2_5 == null)){
+    $('#airtop').innerHTML = '<p class="tip">이 지역의 미세먼지 정보를 불러오지 못했어요.</p>'; $('#airhrs').innerHTML = ''; return;
+  }
+  const c = aq.current, g10 = gradeIdx(c.pm10, 'pm10'), g25 = gradeIdx(c.pm2_5, 'pm25'), worst = Math.max(g10, g25);
+  const tips = ['공기가 깨끗해요. 바깥 활동하기 좋아요.', '보통 수준이에요. 민감한 분은 오래 밖에 있을 때 마스크를 챙기세요.',
+    '공기가 나빠요. 외출할 때 KF80 이상 마스크를 쓰세요.', '매우 나빠요. 외출을 줄이고 창문을 닫아 두세요.'];
+  const card = (label, v, gi, kind, max) => {
+    const [a, b, cc] = CUTS[kind].map(x => (x / max * 100).toFixed(0));
+    const grad = `linear-gradient(90deg,${GC[0]} 0 ${a}%,${GC[1]} ${a}% ${b}%,${GC[2]} ${b}% ${cc}%,${GC[3]} ${cc}% 100%)`;
+    return `<div class="aqc"><b>${label}</b><div class="row"><span class="val">${v == null ? '-' : Math.round(v)}<small> ㎍/㎥</small></span>
+      ${gi >= 0 ? `<span class="badge g${gi}">${GR[gi]}</span>` : ''}</div>
+      <div class="scale" style="background:${grad}">${v == null ? '' : `<i style="left:${Math.min(v / max * 100, 100).toFixed(1)}%"></i>`}</div></div>`;
+  };
+  $('#airtop').innerHTML = `<p class="tip">${tips[Math.max(worst, 0)]}</p><div class="aqgrid">${card('미세먼지 PM10', c.pm10, g10, 'pm10', 200)}${card('초미세먼지 PM2.5', c.pm2_5, g25, 'pm25', 100)}</div>`;
+  const h = aq.hourly;
+  if (!h || !h.time){ $('#airhrs').innerHTML = ''; return; }
+  let s = h.time.findIndex(t => t.slice(0,13) === String(c.time).slice(0,13)); if (s < 0) s = 0;
+  const idx = Array.from({length:24}, (_, k) => s + k).filter(i => i < h.time.length);
+  const row = (label, arr, kind, max) => `<div class="aqrow"><span>${label}</span><div class="bars">${idx.map(i => {
+      const v = arr[i], g = gradeIdx(v, kind);
+      return `<i style="height:${v == null ? 0 : Math.max(Math.min(v / max * 100, 100), 6).toFixed(0)}%;background:${g < 0 ? 'transparent' : GC[g]}" title="${v ?? '-'}"></i>`;
+    }).join('')}</div></div>`;
+  const ticks = idx.map((i, k) => `<span>${k % 6 === 0 ? (k === 0 ? '지금' : (Number(String(h.time[i]).slice(11,13)) || 0) + '시') : ''}</span>`).join('');
+  $('#airhrs').innerHTML = `<h2 style="margin:0">앞으로 24시간</h2>${row('미세', h.pm10, 'pm10', 150)}${row('초미세', h.pm2_5, 'pm25', 75)}
+    <div class="ticks">${ticks}</div><div class="legend">${GR.map((g, i) => `<span style="--c:${GC[i]}">${g}</span>`).join('')}</div>`;
+}
+
 function renderDetails(d){
-  const c = d.current, dl = d.daily, aq = state.aq;
+  const c = d.current, dl = d.daily;
   const items = [
     ['체감 온도', deg(c.apparent_temperature), c.apparent_temperature < c.temperature_2m - 2 ? '바람 때문에 더 춥게 느껴져요' : '실제 온도와 비슷해요'],
     ['습도', Math.round(c.relative_humidity_2m) + '%', c.relative_humidity_2m < 35 ? '건조해요' : c.relative_humidity_2m > 75 ? '습해요' : '쾌적해요'],
     ['바람', `<span class="arrow" style="transform:rotate(${(c.wind_direction_10m + 180) % 360}deg)">↑</span> ${c.wind_speed_10m.toFixed(1)} m/s`, windDir(c.wind_direction_10m)],
     ['자외선 지수', dl.uv_index_max[0] != null ? dl.uv_index_max[0].toFixed(1) : '-', dl.uv_index_max[0] != null ? '오늘 최고 · ' + uvGrade(dl.uv_index_max[0]) : ''],
-    ['미세먼지 PM10', aq && aq.pm10 != null ? Math.round(aq.pm10) + ' ㎍/㎥' : '-', aq && aq.pm10 != null ? aqGrade(aq.pm10, 'pm10') : '정보 없음'],
-    ['초미세먼지 PM2.5', aq && aq.pm2_5 != null ? Math.round(aq.pm2_5) + ' ㎍/㎥' : '-', aq && aq.pm2_5 != null ? aqGrade(aq.pm2_5, 'pm25') : '정보 없음'],
+    ['강수 확률', (dl.precipitation_probability_max[0] ?? 0) + '%', '오늘 최대'],
+    ['구름 양', c.cloud_cover != null ? Math.round(c.cloud_cover) + '%' : '-', c.cloud_cover == null ? '' : c.cloud_cover < 30 ? '하늘이 맑아요' : c.cloud_cover < 70 ? '구름이 조금 있어요' : '구름이 많아요'],
     ['일출 · 일몰', `${hhmm(dl.sunrise[0])} · ${hhmm(dl.sunset[0])}`, '현지 시각'],
     ['기압', Math.round(c.pressure_msl) + ' hPa', '강수량 ' + (c.precipitation ?? 0) + ' mm']
   ];

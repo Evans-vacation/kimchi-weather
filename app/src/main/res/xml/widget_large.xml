@@ -8,4 +8,6 @@
     android:initialLayout="@layout/widget_large"
     android:previewLayout="@layout/widget_large"
     android:description="@string/w_large_desc"
+    android:configure="app.nalssi.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable|configuration_optional"
     android:widgetCategory="home_screen"/>

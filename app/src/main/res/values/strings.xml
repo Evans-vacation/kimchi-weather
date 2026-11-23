@@ -7,4 +7,6 @@
   <string name="w_small_desc">지금 기온과 날씨를 한눈에</string>
   <string name="w_medium_desc">지금 날씨와 앞으로 5시간</string>
   <string name="w_large_desc">시간별, 5일 예보, 미세먼지까지</string>
+  <string name="w_bar">날씨 · 한 줄 (1×4)</string>
+  <string name="w_bar_desc">지금 날씨, 주간 날씨, 미세먼지 3칸 막대</string>
 </resources>

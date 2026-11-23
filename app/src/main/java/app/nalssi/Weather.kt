@@ -49,9 +49,11 @@ object Prefs {
 /** Open-Meteo client (free, no API key). Call off the main thread. */
 object WeatherRepo {
 
-    fun fetch(place: Place): Weather {
-        val fc = JSONObject(
-            get(
+    private const val CACHE = "nalssi_cache"
+
+    /** Fetches, caches the raw answers (for widget previews and offline redraws), parses. */
+    fun fetch(ctx: Context, place: Place): Weather {
+        val fcText = get(
                 "https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}" +
                     "&current=temperature_2m,apparent_temperature,is_day,weather_code" +
                     "&hourly=temperature_2m,precipitation_probability,weather_code,is_day" +
@@ -59,7 +61,30 @@ object WeatherRepo {
                     "&timezone=auto&forecast_days=7",
                 10000
             )
-        )
+        val aqText = try {
+            get(
+                "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${place.lat}" +
+                    "&longitude=${place.lon}&current=pm10,pm2_5&timezone=auto",
+                6000
+            )
+        } catch (e: Exception) {
+            null
+        }
+        val now = System.currentTimeMillis()
+        ctx.getSharedPreferences(CACHE, Context.MODE_PRIVATE).edit()
+            .putString("fc", fcText).putString("aq", aqText).putLong("time", now).apply()
+        return parse(fcText, aqText, now)
+    }
+
+    /** Last successful answer, or null. */
+    fun cached(ctx: Context): Weather? {
+        val p = ctx.getSharedPreferences(CACHE, Context.MODE_PRIVATE)
+        val fc = p.getString("fc", null) ?: return null
+        return try { parse(fc, p.getString("aq", null), p.getLong("time", 0L)) } catch (e: Exception) { null }
+    }
+
+    private fun parse(fcText: String, aqText: String?, fetchedAt: Long): Weather {
+        val fc = JSONObject(fcText)
         val cur = fc.getJSONObject("current")
         val curHour = cur.getString("time").take(13)
 
@@ -97,13 +122,7 @@ object WeatherRepo {
         var pm10: Double? = null
         var pm25: Double? = null
         try {
-            val aq = JSONObject(
-                get(
-                    "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${place.lat}" +
-                        "&longitude=${place.lon}&current=pm10,pm2_5&timezone=auto",
-                    6000
-                )
-            ).getJSONObject("current")
+            val aq = JSONObject(aqText ?: "{}").getJSONObject("current")
             if (!aq.isNull("pm10")) pm10 = aq.getDouble("pm10")
             if (!aq.isNull("pm2_5")) pm25 = aq.getDouble("pm2_5")
         } catch (e: Exception) {
@@ -119,7 +138,7 @@ object WeatherRepo {
             days = days,
             pm10 = pm10,
             pm25 = pm25,
-            fetchedAt = System.currentTimeMillis()
+            fetchedAt = fetchedAt
         )
     }
 
@@ -187,6 +206,41 @@ object Wx {
         "snow" -> if (day) R.drawable.bg_snow else R.drawable.bg_night_dim
         "storm" -> R.drawable.bg_storm
         else -> if (day) R.drawable.bg_cloudy else R.drawable.bg_night_dim
+    }
+
+    /**
+     * 9-step dust level from the worse of PM10 / PM2.5, 0 = cleanest … 8 = worst.
+     * 0-2 green (좋음), 3-5 blue (보통), 6-8 red (나쁨/위험), each group split into 3 by the 환경부 bands.
+     */
+    fun dustStep(pm10: Double?, pm25: Double?): Int? {
+        val c10 = doubleArrayOf(10.0, 20.0, 30.0, 45.0, 60.0, 80.0, 115.0, 150.0)
+        val c25 = doubleArrayOf(5.0, 10.0, 15.0, 22.0, 29.0, 35.0, 55.0, 75.0)
+        fun step(v: Double, cuts: DoubleArray) = cuts.count { v > it }
+        val a = pm10?.let { step(it, c10) }
+        val b = pm25?.let { step(it, c25) }
+        return when {
+            a == null && b == null -> null
+            a == null -> b
+            b == null -> a
+            else -> maxOf(a, b)
+        }
+    }
+
+    /** Lit cells for the 3-cell meter: green fills up as air gets cleaner, blue and red fill up as it gets worse. */
+    fun dustCells(step: Int): Int = if (step < 3) 3 - step else step % 3 + 1
+
+    fun dustCell(step: Int): Int = when {
+        step < 3 -> R.drawable.cell_green
+        step < 6 -> R.drawable.cell_blue
+        else -> R.drawable.cell_red
+    }
+
+    fun dustWord(step: Int): String = when (step) {
+        0 -> "아주 좋음"
+        1, 2 -> "좋음"
+        3, 4, 5 -> "보통"
+        6, 7 -> "나쁨"
+        else -> "위험"
     }
 
     /** Korean air-quality grades (환경부 기준). */
