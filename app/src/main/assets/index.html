@@ -22,11 +22,18 @@ body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.55 "IBM Plex Sans KR
 .scene{position:fixed;top:0;left:0;right:0;height:var(--sr,100vh);z-index:-1;overflow:hidden;pointer-events:none;
   background:var(--stop,#1f6fc5);filter:brightness(1.18) saturate(1.05)}
 .scene svg{position:absolute;left:50%;bottom:0;width:104%;height:auto;aspect-ratio:1.6;transform:translateX(-50%);display:block}
-.scene::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12) 0,rgba(0,0,0,0) 20%,rgba(0,0,0,0) 88%,rgba(0,0,0,.22) 100%)}
+.scene::after{content:"";position:absolute;inset:0;background:
+  radial-gradient(ellipse 75% 55% at 22% 58%,rgba(5,12,28,.42),rgba(5,12,28,0) 72%),
+  linear-gradient(180deg,rgba(5,12,28,.22) 0,rgba(5,12,28,.08) 22%,rgba(5,12,28,.08) 80%,rgba(5,12,28,.3) 100%)}
+.scene.bright{filter:brightness(1.02) saturate(1.05)}
+.scene.bright::after{background:
+  radial-gradient(ellipse 85% 70% at 22% 62%,rgba(5,12,28,.58),rgba(5,12,28,0) 76%),
+  linear-gradient(180deg,rgba(5,12,28,.3) 0,rgba(5,12,28,.14) 22%,rgba(5,12,28,.12) 80%,rgba(5,12,28,.32) 100%)}
 @media(min-width:761px){.scene{height:100vh}.scene svg{left:0;width:100%;height:100%;aspect-ratio:auto;transform:none}}
 /* readable on bright scenes: every text gets a soft shadow, big numbers a stronger one */
 body{text-shadow:0 1px 2px rgba(0,0,0,.45),0 0 8px rgba(0,0,0,.18)}
-.hero{text-shadow:0 2px 4px rgba(0,0,0,.4),0 0 18px rgba(0,0,0,.25)}
+.hero{text-shadow:0 1px 2px rgba(0,0,0,.7),0 2px 8px rgba(0,0,0,.45),0 0 24px rgba(0,0,0,.3)}
+.hero .hl,.hero .place small{color:rgba(255,255,255,.92)}
 .badge,.toast,.mv button{text-shadow:none}
 .wrap{max-width:1100px;margin:0 auto;padding:calc(var(--sat,0px) + clamp(16px,3vw,32px)) max(4vw,16px) calc(var(--sab,0px) + 40px)}
 button,input{font:inherit;color:inherit}
@@ -623,6 +630,7 @@ function render(){
   const sk = cat + (day ? 'd' : 'n') + theme;
   if (state.sceneKey !== sk){
     state.sceneKey = sk; $('#scene').innerHTML = sceneSVG(cat, !day, true, theme, {noOrb:true});
+    $('#scene').classList.toggle('bright', day && cat !== 'storm' && cat !== 'rain');
     const sv = $('#scene svg');
     if (sv){ document.documentElement.style.setProperty('--stop', sv.dataset.top); document.documentElement.style.setProperty('--sbot', sv.dataset.bot); }
   }
