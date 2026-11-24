@@ -195,6 +195,9 @@ class MainActivity : Activity() {
     /** Called from the page: window.Android.setPlace(JSON.stringify(place)). */
     inner class Bridge {
         @JavascriptInterface
+        fun getVersion(): String = BuildConfig.VERSION_NAME
+
+        @JavascriptInterface
         fun getNotify(): String = Notifier.settings(applicationContext).toString()
 
         @JavascriptInterface
