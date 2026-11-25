@@ -266,7 +266,7 @@ button,input{font:inherit;color:inherit}
       <h2>비구름 레이더<span class="lg">지난 1시간</span></h2>
       <div class="rmap" id="rmap"><div class="rmsg" id="rmsg">레이더를 불러오는 중…</div>
         <div class="zm"><button data-z="1" aria-label="크게">+</button><button data-z="-1" aria-label="작게">−</button></div>
-        <span class="me"></span><span class="attr">© OpenStreetMap © CARTO · RainViewer</span></div>
+        <span class="me"></span><span class="attr">지도 © Esri · 레이더 RainViewer</span></div>
       <div class="rctl"><button id="rplay" aria-label="재생">▶</button><input type="range" id="rslide" min="0" max="0" value="0" aria-label="레이더 시간"><span id="rtime">--:--</span></div>
       <div class="rleg">약한 비<i></i>강한 비</div>
     </section>
@@ -1439,7 +1439,7 @@ function prefetchNeighbours(){   // so a swipe shows the next place right away
   }, 1500);
 }
 
-/* ---------- 비구름 레이더: RainViewer past radar (free tier: 2 h, zoom ≤ 7) over CARTO dark map ---------- */
+/* ---------- 비구름 레이더: RainViewer past radar (free tier: 2 h, zoom ≤ 7) over Esri dark gray map ---------- */
 const RAD = {z: 6, frames: [], host: '', i: 0, play: null, at: null, loadedAt: 0, seen: false};
 function tilesFor(lat, lon, z, w, h){
   const n = 2 ** z, x = (lon + 180) / 360 * n, r = lat * Math.PI / 180;
@@ -1464,16 +1464,16 @@ async function radarFor(p, again){
     RAD.host = j.host; RAD.frames = (j.radar && j.radar.past || []).slice(-7);   // last hour, 10-minute steps
     if (!RAD.frames.length) throw new Error('no frames');
   }catch(e){ msg.textContent = '레이더를 불러오지 못했어요'; msg.hidden = false; return; }
-  const w = box.clientWidth || 340, h = box.clientHeight || 230, z = RAD.z, t = tilesFor(p.lat, p.lon, z, w, h), sub = 'abcd';
+  const w = box.clientWidth || 340, h = box.clientHeight || 230, z = RAD.z, t = tilesFor(p.lat, p.lon, z, w, h);
   box.querySelectorAll('img').forEach(i => i.remove());
   const add = (src, cls, k) => {
     const im = new Image(); im.alt = ''; im.className = cls; im.decoding = 'async';
     im.onerror = () => im.remove(); im.style.left = k.left + 'px'; im.style.top = k.top + 'px'; im.src = src;
     box.insertBefore(im, box.querySelector('.zm')); return im;
   };
-  t.forEach((k, n) => add(`https://${sub[n % 4]}.basemaps.cartocdn.com/dark_all/${z}/${k.x}/${k.y}.png`, 'base', k));
+  t.forEach(k => add(`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/${z}/${k.y}/${k.x}`, 'base', k));
   RAD.frames.forEach((f, fi) => t.forEach(k => add(`${RAD.host}${f.path}/256/${z}/${k.x}/${k.y}/2/1_1.png`, 'rl f' + fi, k)));
-  t.forEach(k => add(`https://${sub[0]}.basemaps.cartocdn.com/dark_only_labels/${z}/${k.x}/${k.y}.png`, 'lab', k));
+  t.forEach(k => add(`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/${z}/${k.y}/${k.x}`, 'lab', k));
   msg.hidden = true;
   $('#rslide').max = RAD.frames.length - 1;
   showFrame(RAD.frames.length - 1);
