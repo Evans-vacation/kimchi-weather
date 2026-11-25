@@ -282,7 +282,7 @@ object WidgetUpdater {
 
         val today = w.days.firstOrNull()
         val tempSp = when (kind) { Kind.BAR -> 26f; Kind.SMALL -> 44f; Kind.MEDIUM -> 26f; Kind.LARGE -> 34f }
-        text(rv, R.id.city, place.name, if (kind == Kind.SMALL) 19f else 16f)
+        text(rv, R.id.city, place.name, if (kind == Kind.SMALL) 30f else 16f)
         text(rv, R.id.temp, deg(w.temp), tempSp)
         text(rv, R.id.cond, Wx.label(w.code), 13f)
 

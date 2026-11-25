@@ -79,9 +79,14 @@ button,input{font:inherit;color:inherit}
 .hcols{display:flex}
 .hc{flex:none;width:62px;text-align:center;font-size:14px;font-variant-numeric:tabular-nums}
 .hc .t{font-size:16px;font-weight:600}
-.hc svg{width:34px;height:34px;display:block;margin:4px auto}
+.hc svg{width:28px;height:28px;display:block;margin:2px auto 0}
 .hc .p{color:#9fd6ff;font-size:13px;min-height:20px}
-.chart{display:block}
+.chart{display:block;overflow:visible}
+.chart .tl{fill:#fff;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:rgba(0,0,0,.35);stroke-width:3px}
+.chart .pl{fill:rgba(159,214,255,.55);font-size:10px;font-variant-numeric:tabular-nums}
+.chart .pl.hi{fill:#9fd6ff;font-weight:600}
+.chart .sep{stroke:rgba(255,255,255,.08)}
+.panel h2 .lg{font-size:11px;color:rgba(159,214,255,.75);margin-left:6px}
 .day{display:grid;grid-template-columns:3.2em 34px 3em 3em minmax(40px,1fr) 3em;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
 .day:first-of-type{border-top:0}
 .day svg{width:32px;height:32px}
@@ -108,6 +113,42 @@ button,input{font:inherit;color:inherit}
 .mv button{min-width:44px;height:40px;border-radius:20px;border:1px solid rgba(255,255,255,.5);background:rgba(10,20,40,.55);color:#fff;font:inherit;font-size:15px;cursor:pointer;padding:0 12px}
 .mv button:focus-visible{outline:2px solid #fff}
 .cmp{margin-top:4px;font-size:15px;font-weight:600}
+/* 즐겨찾기 + swipe */
+.hero{touch-action:pan-y}
+.hero>div{transition:transform .28s ease,opacity .28s ease}
+.hero.out-l>div{transform:translateX(-40px);opacity:0}.hero.out-r>div{transform:translateX(40px);opacity:0}
+.hero.in-l>div{transform:translateX(40px);opacity:0;transition:none}.hero.in-r>div{transform:translateX(-40px);opacity:0;transition:none}
+.fav{font:inherit;font-size:22px;line-height:1;background:none;border:0;color:#fff;cursor:pointer;padding:6px 8px;margin:-6px 0 -6px 2px;vertical-align:-1px;min-width:40px;min-height:40px}
+.fav.on{color:#ffd54a}
+.fav:focus-visible{outline:2px solid #fff;border-radius:8px}
+.dots{display:flex;gap:7px;justify-content:center;margin:-6px 0 12px;min-height:8px}
+.dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35)}
+.dots i.on{background:#fff;width:18px;border-radius:4px}
+.dots i.gps{background:none;width:auto;height:auto;font-size:9px;line-height:7px;font-style:normal;opacity:.6}
+/* 14일 / 지난 날씨 */
+.day .dn small{display:block;font-size:11px;color:var(--soft);margin-top:1px}
+.day.past{opacity:.62}
+.day.past .p{color:#9fd6ff}
+.dmore{display:flex;gap:8px;margin-top:10px}
+.dmore button{flex:1;font:inherit;font-size:14px;min-height:42px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.07);color:#fff;cursor:pointer}
+.dmore button:focus-visible{outline:2px solid #fff}
+.psep{font-size:12px;color:var(--soft);padding:8px 0 2px;border-top:1px dashed var(--line)}
+/* 레이더 */
+.rmap{position:relative;height:230px;border-radius:14px;overflow:hidden;background:#0d1626}
+.rmap img{position:absolute;width:256px;height:256px;max-width:none;user-select:none;-webkit-user-drag:none}
+.rmap .rl{opacity:0;transition:opacity .25s}.rmap .rl.on{opacity:.85}
+.rmap .me{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#3d8bff;border:2.5px solid #fff;box-shadow:0 0 0 6px rgba(61,139,255,.25);z-index:3}
+.rmap .attr{position:absolute;right:4px;bottom:2px;font-size:9px;color:rgba(255,255,255,.55);z-index:3}
+.rmap .zm{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px;z-index:3}
+.rmap .zm button{width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(10,20,40,.7);color:#fff;font-size:20px;cursor:pointer}
+.rctl{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:14px;font-variant-numeric:tabular-nums}
+.rctl button{flex:none;width:44px;height:40px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:#fff;font-size:16px;cursor:pointer}
+.rctl input{flex:1;accent-color:#7cc4ff}
+.rctl span{min-width:5.6em;text-align:right}
+.rleg{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--soft)}
+.rleg i{flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,#8fd3ff,#2f7dff,#1446c8,#ffe14a,#ff7a1a,#d81b1b)}
+.rmsg[hidden]{display:none}
+.rmsg{position:absolute;inset:0;display:grid;place-items:center;font-size:14px;color:var(--soft);z-index:2;text-align:center;padding:0 20px}
 .cmp .dn{color:#9fd6ff}.cmp .up{color:#ffc2a8}
 .sheet{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;padding:12px}
 .sheet[hidden]{display:none}
@@ -122,7 +163,7 @@ button,input{font:inherit;color:inherit}
 .tg input:focus-visible+i{outline:2px solid #fff;outline-offset:2px}
 .tm{display:flex;justify-content:space-between;align-items:center;padding:12px 0;font-size:15px}
 .tm input{font:inherit;font-size:16px;color:#fff;background:rgba(255,255,255,.1);border:1px solid var(--line);border-radius:10px;padding:6px 10px;min-height:44px;color-scheme:dark}
-.sbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.sbtn{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:6px}
 .sbtn button,.sclose{font:inherit;font-size:15px;min-height:46px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.1);color:#fff;cursor:pointer}
 .sclose{width:100%;margin-top:10px;background:#3d8bff;border-color:#3d8bff}
 .scard h4{margin:16px 0 0;font-size:13px;font-weight:600;color:var(--soft)}
@@ -145,6 +186,8 @@ button,input{font:inherit;color:inherit}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 .tip{margin:0 0 12px;font-size:16px}
 .aqgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.aqc.wide{grid-column:1/-1}
+.o3tip{margin:8px 0 0;font-size:14px;color:#ffd6a0}
 .aqc{background:rgba(255,255,255,.07);border-radius:14px;padding:12px 14px}
 .aqc b{display:block;font-size:13px;font-weight:400;color:var(--soft)}
 .aqc .row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
@@ -205,17 +248,27 @@ button,input{font:inherit;color:inherit}
       <div class="big" id="big"></div>
     </div>
   </section>
+  <div class="dots" id="dots" aria-hidden="true"></div>
 
   <div id="cards">
     <section class="panel card" data-id="hours">
-      <h2>시간별 예보</h2>
+      <h2>시간별 예보<span class="lg">💧 비 올 확률</span></h2>
       <div class="hours"><div class="hstrip" id="hours"></div></div>
     </section>
-    <section class="panel card" data-id="days"><h2>7일 예보</h2><div id="days"></div></section>
+    <section class="panel card" data-id="days"><h2>14일 예보</h2><div id="pastdays"></div><div id="days"></div>
+      <div class="dmore"><button id="pastBtn">지난 7일 보기</button><button id="moreBtn">14일 모두 보기</button></div></section>
     <section class="panel card" data-id="air">
       <h2>미세먼지</h2>
       <div id="airtop"></div>
       <div class="aqh" id="airhrs"></div>
+    </section>
+    <section class="panel card" data-id="radar">
+      <h2>비구름 레이더<span class="lg">지난 1시간</span></h2>
+      <div class="rmap" id="rmap"><div class="rmsg" id="rmsg">레이더를 불러오는 중…</div>
+        <div class="zm"><button data-z="1" aria-label="크게">+</button><button data-z="-1" aria-label="작게">−</button></div>
+        <span class="me"></span><span class="attr">© OpenStreetMap © CARTO · RainViewer</span></div>
+      <div class="rctl"><button id="rplay" aria-label="재생">▶</button><input type="range" id="rslide" min="0" max="0" value="0" aria-label="레이더 시간"><span id="rtime">--:--</span></div>
+      <div class="rleg">약한 비<i></i>강한 비</div>
     </section>
     <section class="panel card" data-id="dets"><h2>상세 정보</h2><div class="dets" id="dets"></div></section>
   </div>
@@ -226,9 +279,10 @@ button,input{font:inherit;color:inherit}
       <h3 id="settitle" tabindex="-1">설정</h3>
       <h4>보여줄 항목</h4>
       <label class="tg"><span><b>시간별 예보</b></span><input type="checkbox" data-card="hours"><i></i></label>
-      <label class="tg"><span><b>7일 예보</b></span><input type="checkbox" data-card="days"><i></i></label>
-      <label class="tg"><span><b>미세먼지</b></span><input type="checkbox" data-card="air"><i></i></label>
-      <label class="tg"><span><b>상세 정보</b><small>체감, 습도, 바람, 자외선, 일출·일몰 등</small></span><input type="checkbox" data-card="dets"><i></i></label>
+      <label class="tg"><span><b>14일 예보</b><small>지난 7일 날씨도 볼 수 있어요</small></span><input type="checkbox" data-card="days"><i></i></label>
+      <label class="tg"><span><b>미세먼지</b><small>미세먼지, 초미세먼지, 오존</small></span><input type="checkbox" data-card="air"><i></i></label>
+      <label class="tg" id="radarTg"><span><b>비구름 레이더</b><small>지난 1시간 동안 비구름이 움직인 모습</small></span><input type="checkbox" data-card="radar"><i></i></label>
+      <label class="tg"><span><b>상세 정보</b><small>체감, 습도, 바람, 자외선, 일출·일몰, 달 모양, 달리기 지수 등</small></span><input type="checkbox" data-card="dets"><i></i></label>
       <label class="tg"><span><b>오늘의 한마디</b><small>기온 옆에 "두꺼운 외투 입어요", "우산 챙기세요" 같은 안내</small></span><input type="checkbox" id="pTip"><i></i></label>
       <label class="tg"><span><b>어제와 비교</b><small>기온 아래 "어제보다 ○° 낮아요"</small></span><input type="checkbox" id="pCmp"><i></i></label>
       <button class="sline" id="resetOrder">항목 순서를 기본으로 되돌리기</button>
@@ -242,7 +296,7 @@ button,input{font:inherit;color:inherit}
         <option value="hanok">한옥</option><option value="nature">시골·산</option><option value="tropical">휴양지</option><option value="desert">사막</option><option value="alps">알프스</option><option value="paris">파리</option></select></div>
       <label class="tg"><span><b>배경 움직임</b><small>비·눈·구름이 움직여요. 끄면 배터리를 조금 아껴요.</small></span><input type="checkbox" id="pAnim"><i></i></label>
       <h4 id="notifH">알림</h4>
-      <button class="sline" id="openNotif">비·눈 알림 · 아침 브리핑 설정 ›</button>
+      <button class="sline" id="openNotif">비·눈 · 미세먼지 알림 · 아침 브리핑 설정 ›</button>
       <p class="snote" id="appver"></p>
       <button class="sclose" id="setClose">닫기</button>
     </div>
@@ -255,7 +309,8 @@ button,input{font:inherit;color:inherit}
       <label class="tg"><span><b>비·눈 시작 알림</b><small>1~2시간 안에 비나 눈이 시작될 것 같으면 알려 드려요. 밤 11시~아침 6시에는 울리지 않아요.</small></span><input type="checkbox" id="nRain"><i></i></label>
       <label class="tg"><span><b>아침 날씨 브리핑</b><small>매일 정한 시간에 오늘 기온, 비 소식, 미세먼지, 옷차림을 한 번에 알려 드려요.</small></span><input type="checkbox" id="nBrief"><i></i></label>
       <label class="tm">브리핑 시간 <input type="time" id="nTime" value="07:00"></label>
-      <div class="sbtn"><button id="tRain">비 알림 미리보기</button><button id="tBrief">브리핑 미리보기</button></div>
+      <label class="tg"><span><b>미세먼지 나쁨 알림</b><small>미세먼지나 초미세먼지가 '나쁨' 이상이 되면 알려 드려요. 밤 10시~아침 7시에는 울리지 않아요.</small></span><input type="checkbox" id="nDust"><i></i></label>
+      <div class="sbtn"><button id="tRain">비 알림 미리보기</button><button id="tBrief">브리핑 미리보기</button><button id="tDust">미세먼지 알림 미리보기</button></div>
       <p class="snote" id="nNote"></p>
       <button class="sclose" id="sClose">닫기</button>
     </div>
@@ -608,17 +663,17 @@ function fcUrl(p){
     '&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl,cloud_cover' +
     '&hourly=temperature_2m,precipitation_probability,weather_code,is_day' +
     '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max' +
-    '&wind_speed_unit=ms&timezone=auto&forecast_days=7&past_hours=24';
+    '&wind_speed_unit=ms&timezone=auto&forecast_days=14&past_hours=24';
 }
-const aqUrl = p => `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.lat}&longitude=${p.lon}&current=pm10,pm2_5&hourly=pm10,pm2_5&forecast_days=2&timezone=auto`;
+const aqUrl = p => `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.lat}&longitude=${p.lon}&current=pm10,pm2_5,ozone&hourly=pm10,pm2_5,ozone&forecast_days=2&timezone=auto`;
 
 function demoData(){
   const pad = n => String(n).padStart(2,'0');
   const now = new Date(), base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  const codes = [1,2,3,61,3,0,2];
+  const codes = [1,2,3,61,3,0,2,1,1,3,63,2,0,1];
   const h = {time:[],temperature_2m:[],precipitation_probability:[],weather_code:[],is_day:[]};
-  for (let i = 0; i < 168; i++){
+  for (let i = 0; i < 336; i++){
     const d = new Date(base.getTime() + i * 3600e3), hr = d.getHours(), di = Math.floor(i / 24);
     h.time.push(`${iso(d)}T${pad(hr)}:00`);
     h.temperature_2m.push(5 + di % 3 - 4 * Math.cos((hr - 3) / 24 * 2 * Math.PI));
@@ -626,7 +681,7 @@ function demoData(){
     h.precipitation_probability.push(codes[di] === 61 ? 60 + (hr % 5) * 5 : (hr * 7 + di * 3) % 20);
   }
   const dl = {time:[],weather_code:codes,temperature_2m_max:[],temperature_2m_min:[],precipitation_probability_max:[],sunrise:[],sunset:[],uv_index_max:[]};
-  for (let i = 0; i < 7; i++){
+  for (let i = 0; i < 14; i++){
     const d = new Date(base.getTime() + i * 864e5), s = iso(d), sl = h.temperature_2m.slice(i*24, i*24+24);
     dl.time.push(s); dl.temperature_2m_max.push(Math.max(...sl)); dl.temperature_2m_min.push(Math.min(...sl));
     dl.precipitation_probability_max.push(Math.max(...h.precipitation_probability.slice(i*24, i*24+24)));
@@ -643,18 +698,28 @@ function demoData(){
     is_day:h.is_day[idx], precipitation:0, weather_code:codes[0], wind_speed_10m:3.2, wind_direction_10m:315, pressure_msl:1021 }, hourly:h, daily:dl };
 }
 
-async function loadPlace(p){
-  state.place = p; store.set('place', p);
+const pkey = p => p.lat.toFixed(3) + ',' + p.lon.toFixed(3);
+const wxCache = {};
+async function fetchPlace(p, force){
+  const k = pkey(p), c = wxCache[k];
+  if (!force && c && Date.now() - c.t < 10 * 60 * 1000) return c;
+  const [w, aq] = await Promise.all([getJSON(fcUrl(p)), getJSON(aqUrl(p)).catch(() => null)]);
+  return (wxCache[k] = {t: Date.now(), w, aq: aq && aq.current ? aq : null});
+}
+async function loadPlace(p, force){
+  state.place = p; store.set('place', p); state.past = null; state.daysAll = false;
   try{ if (window.Android) window.Android.setPlace(JSON.stringify(Object.assign({}, p, {theme: sceneTheme(p)}))); }catch(e){}
-  $('#hero').classList.add('loading'); $('#place').innerHTML = esc(p.name) + ' <small>불러오는 중…</small>';
+  $('#hero').classList.add('loading'); $('#place').innerHTML = esc(p.name) + ' <small>불러오는 중…</small>'; renderDots();
   markChips();
   try{
-    const [w, aq] = await Promise.all([getJSON(fcUrl(p)), getJSON(aqUrl(p)).catch(() => null)]);
-    state.data = w; state.aq = aq && aq.current ? aq : null; state.demo = false;
+    const r = await fetchPlace(p, force);
+    state.data = r.w; state.aq = r.aq; state.demo = false;
   }catch(e){
     state.data = demoData(); state.aq = demoAir(state.data.current.time); state.demo = true;
   }
   render();
+  radarFor(p);
+  prefetchNeighbours();
 }
 
 /* ---------- render ---------- */
@@ -667,7 +732,11 @@ function render(){
   $('#note').classList.toggle('on', state.demo);
   $('#hero').classList.remove('loading');
   const p = state.place, sub = [p.admin, p.country].filter(Boolean).join(', ');
-  $('#place').innerHTML = (p.gps ? '📍 ' : '') + esc(p.name) + (sub ? `<small>${esc(sub)}</small>` : '');
+  const isFav = favIndex(p) >= 0;
+  $('#place').innerHTML = (p.gps ? '📍 ' : '') + esc(p.name) +
+    `<button class="fav${isFav ? ' on' : ''}" id="fav" aria-pressed="${isFav}" aria-label="${isFav ? '즐겨찾기에서 빼기' : '즐겨찾기에 추가'}">${isFav ? '★' : '☆'}</button>` +
+    (sub ? `<small>${esc(sub)}</small>` : '');
+  renderDots();
   $('#temp').textContent = deg(c.temperature_2m);
   $('#cond').textContent = label;
   $('#hl').textContent = `최고 ${deg(d.daily.temperature_2m_max[0])} · 최저 ${deg(d.daily.temperature_2m_min[0])} · 체감 ${deg(c.apparent_temperature)}`;
@@ -694,38 +763,82 @@ function renderHours(d){
   const h = d.hourly, key = d.current.time.slice(0,13);
   let s = h.time.findIndex(t => t.slice(0,13) === key); if (s < 0) s = 0;
   const idx = Array.from({length: 25}, (_, i) => s + i).filter(i => i < h.time.length);
-  const W = 62, H = 56, temps = idx.map(i => h.temperature_2m[i]);
+  const W = 62, temps = idx.map(i => h.temperature_2m[i]), pops = idx.map(i => h.precipitation_probability[i] ?? 0);
+  const TH = 50, TOP = 21, BAR = 15, GAP = 14, H = TH + BAR + GAP + 1;
   const lo = Math.min(...temps), hi = Math.max(...temps), span = Math.max(hi - lo, 1);
-  const pts = idx.map((_, k) => [k * W + W / 2, 10 + (1 - (temps[k] - lo) / span) * (H - 20)]);
+  const pts = idx.map((_, k) => [k * W + W / 2, TOP + (1 - (temps[k] - lo) / span) * (TH - TOP - 8)]);
   const line = pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
-  const area = `${pts[0][0]},${H} ${line} ${pts[pts.length-1][0]},${H}`;
+  const area = `${pts[0][0]},${TH} ${line} ${pts[pts.length-1][0]},${TH}`;
+  const bars = pops.map((v, k) => {
+    const x = k * W + W / 2, bh = Math.max(2, v / 100 * BAR), y = TH + GAP + BAR - bh;
+    const col = v >= 60 ? '#4aa8ff' : v >= 30 ? '#7cc4ff' : 'rgba(159,214,255,.35)';
+    return `<rect x="${x - 9}" y="${y.toFixed(1)}" width="18" height="${bh.toFixed(1)}" rx="3" fill="${col}"/>` +
+      `<text x="${x}" y="${(y - 5).toFixed(1)}" text-anchor="middle" class="pl${v >= 30 ? ' hi' : ''}">${v}%</text>`;
+  }).join('');
   const chart = `<svg class="chart" width="${idx.length * W}" height="${H}" aria-hidden="true">
-    <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc93c" stop-opacity=".35"/><stop offset="1" stop-color="#ffc93c" stop-opacity="0"/></linearGradient></defs>
+    <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc93c" stop-opacity=".3"/><stop offset="1" stop-color="#ffc93c" stop-opacity="0"/></linearGradient></defs>
     <polygon points="${area}" fill="url(#ga)"/><polyline points="${line}" fill="none" stroke="#ffc93c" stroke-width="2.5" stroke-linejoin="round"/>
-    ${pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#fff"/>`).join('')}</svg>`;
+    ${pts.map((p, k) => `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fff"/><text x="${p[0]}" y="${(p[1] - 10).toFixed(1)}" text-anchor="middle" class="tl">${deg(temps[k])}</text>`).join('')}
+    <line x1="0" x2="${idx.length * W}" y1="${TH + 4}" y2="${TH + 4}" class="sep"/>
+    ${bars}</svg>`;
   const cols = idx.map((i, k) => {
-    const cat = codeInfo(h.weather_code[i])[1], pr = h.precipitation_probability[i];
-    return `<div class="hc"><div>${k === 0 ? '지금' : hourText(Number(h.time[i].slice(11,13)))}</div>${icon(cat, !!h.is_day[i])}
-      <div class="t">${deg(temps[k])}</div><div class="p">${pr >= 20 ? '💧' + pr + '%' : ''}</div></div>`;
+    const cat = codeInfo(h.weather_code[i])[1];
+    return `<div class="hc"><div>${k === 0 ? '지금' : hourText(Number(h.time[i].slice(11,13)))}</div>${icon(cat, !!h.is_day[i])}</div>`;
   }).join('');
   $('#hours').innerHTML = `<div class="hcols">${cols}</div>${chart}`;
 }
 
+const md = t => { const [, m, dd] = t.split('-').map(Number); return `${m}.${dd}`; };
+const dowOf = t => { const [y, m, dd] = t.split('-').map(Number); return new Date(y, m - 1, dd).getDay(); };
+function dayRow(o){
+  return `<div class="day${o.past ? ' past' : ''}" title="${esc(o.lab)}"><div class="dn">${o.name}<small>${o.date}</small></div>${icon(o.cat, true)}
+      <div class="p">${o.p}</div><div class="lo">${deg(o.mn)}</div>
+      <div class="rng"><i style="left:${o.l.toFixed(1)}%;width:${o.w.toFixed(1)}%"></i></div><div class="hi">${deg(o.mx)}</div></div>`;
+}
 function renderDays(d){
-  const dl = d.daily, lo = Math.min(...dl.temperature_2m_min), hi = Math.max(...dl.temperature_2m_max), span = Math.max(hi - lo, 1);
-  $('#days').innerHTML = dl.time.map((t, i) => {
-    const [y, m, dd] = t.split('-').map(Number), dow = new Date(y, m - 1, dd).getDay();
+  const dl = d.daily, pd = state.past && state.past.daily;
+  const n = state.daysAll ? dl.time.length : Math.min(7, dl.time.length);
+  const mins = dl.temperature_2m_min.slice(0, n).concat(pd ? pd.temperature_2m_min : []).filter(v => v != null);
+  const maxs = dl.temperature_2m_max.slice(0, n).concat(pd ? pd.temperature_2m_max : []).filter(v => v != null);
+  const lo = Math.min(...mins), hi = Math.max(...maxs), span = Math.max(hi - lo, 1);
+  const pos = (mn, mx) => ({l: (mn - lo) / span * 100, w: Math.max((mx - mn) / span * 100, 4)});
+  $('#days').innerHTML = dl.time.slice(0, n).map((t, i) => {
     const mn = dl.temperature_2m_min[i], mx = dl.temperature_2m_max[i], pr = dl.precipitation_probability_max[i];
     const [lab, cat] = codeInfo(dl.weather_code[i]);
-    const l = (mn - lo) / span * 100, w = Math.max((mx - mn) / span * 100, 4);
-    return `<div class="day" title="${esc(lab)}"><div>${i === 0 ? '오늘' : DOW[dow] + '요일'}</div>${icon(cat, true)}
-      <div class="p">${pr != null && pr >= 10 ? pr + '%' : ''}</div><div class="lo">${deg(mn)}</div>
-      <div class="rng"><i style="left:${l.toFixed(1)}%;width:${w.toFixed(1)}%"></i></div><div class="hi">${deg(mx)}</div></div>`;
+    return dayRow(Object.assign({lab, cat, mn, mx, name: i === 0 ? '오늘' : i === 1 ? '내일' : DOW[dowOf(t)] + '요일', date: md(t),
+      p: pr != null && pr >= 10 ? pr + '%' : ''}, pos(mn, mx)));
   }).join('');
+  if (pd){
+    const rows = pd.time.map((t, i) => {
+      const mn = pd.temperature_2m_min[i], mx = pd.temperature_2m_max[i]; if (mn == null || mx == null) return '';
+      const [lab, cat] = codeInfo(pd.weather_code[i]), back = pd.time.length - i, mm = pd.precipitation_sum[i];
+      return dayRow(Object.assign({past: true, lab, cat, mn, mx, name: back === 1 ? '어제' : back + '일 전', date: md(t) + ' ' + DOW[dowOf(t)],
+        p: mm != null && mm >= 0.5 ? mm.toFixed(mm < 10 ? 1 : 0) + 'mm' : ''}, pos(mn, mx)));
+    }).join('');
+    $('#pastdays').innerHTML = `<div class="psep">지난 7일 (실제 날씨 · 💧는 내린 비·눈 양)</div>${rows}<div class="psep">예보</div>`;
+  } else $('#pastdays').innerHTML = '';
+  $('#pastBtn').textContent = pd ? '지난 날씨 접기' : '지난 7일 보기';
+  $('#moreBtn').textContent = state.daysAll ? '7일만 보기' : `${dl.time.length}일 모두 보기`;
+  $('#moreBtn').hidden = dl.time.length <= 7;
+  $('#days').closest('.card').querySelector('h2').textContent = `${state.daysAll ? dl.time.length : n}일 예보`;
 }
+async function togglePast(){
+  if (state.past){ state.past = null; renderDays(state.data); return; }
+  if (state.demo || !state.data) return toast('지난 날씨를 불러오지 못했어요');
+  const p = state.place, btn = $('#pastBtn'); btn.textContent = '불러오는 중…';
+  try{
+    const j = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}` +
+      '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&past_days=7&forecast_days=0&timezone=auto');
+    if (state.place !== p) return;
+    state.past = j; renderDays(state.data); requestAnimationFrame(layoutScene);
+  }catch(e){ toast('지난 날씨를 불러오지 못했어요'); renderDays(state.data); }
+}
+$('#pastBtn').addEventListener('click', togglePast);
+$('#moreBtn').addEventListener('click', () => { state.daysAll = !state.daysAll; renderDays(state.data); requestAnimationFrame(layoutScene); });
 
 const GR = ['좋음','보통','나쁨','매우 나쁨'], GC = ['#3d7dff','#25b86a','#f29a1f','#e8484a'];
-const CUTS = {pm10:[30,80,150], pm25:[15,35,75]};
+const CUTS = {pm10:[30,80,150], pm25:[15,35,75], o3:[0.03,0.09,0.15]};   // 환경부 기준, 오존은 ppm
+const toPpm = v => v == null ? null : v / 1963;   // ㎍/㎥ → ppm (25°C)
 function gradeIdx(v, kind){ if (v == null) return -1; const c = CUTS[kind]; let i = 0; while (i < 3 && v > c[i]) i++; return i; }
 function demoAir(curTime){
   const h = {time:[], pm10:[], pm2_5:[]}, base = curTime.slice(0,11), start = Number(curTime.slice(11,13));
@@ -733,8 +846,9 @@ function demoAir(curTime){
     const hr = (start + k) % 24;
     h.time.push(`${base}${String(hr).padStart(2,"0")}:00`);
     h.pm10.push(Math.round(38 + 22 * Math.sin((k + 3) / 5))); h.pm2_5.push(Math.round(18 + 12 * Math.sin((k + 2) / 5)));
+    (h.ozone || (h.ozone = [])).push(Math.round(70 + 40 * Math.sin((k - 2) / 4)));
   }
-  return { current:{time:curTime, pm10:38, pm2_5:18}, hourly:h };
+  return { current:{time:curTime, pm10:38, pm2_5:18, ozone:72}, hourly:h };
 }
 function renderAir(){
   const aq = state.aq;
@@ -744,14 +858,18 @@ function renderAir(){
   const c = aq.current, g10 = gradeIdx(c.pm10, 'pm10'), g25 = gradeIdx(c.pm2_5, 'pm25'), worst = Math.max(g10, g25);
   const tips = ['공기가 깨끗해요. 바깥 활동하기 좋아요.', '보통 수준이에요. 민감한 분은 오래 밖에 있을 때 마스크를 챙기세요.',
     '공기가 나빠요. 외출할 때 KF80 이상 마스크를 쓰세요.', '매우 나빠요. 외출을 줄이고 창문을 닫아 두세요.'];
-  const card = (label, v, gi, kind, max) => {
+  const card = (label, v, gi, kind, max, wide) => {
     const [a, b, cc] = CUTS[kind].map(x => (x / max * 100).toFixed(0));
     const grad = `linear-gradient(90deg,${GC[0]} 0 ${a}%,${GC[1]} ${a}% ${b}%,${GC[2]} ${b}% ${cc}%,${GC[3]} ${cc}% 100%)`;
-    return `<div class="aqc"><b>${label}</b><div class="row"><span class="val">${v == null ? '-' : Math.round(v)}<small> ㎍/㎥</small></span>
+    const val = v == null ? '-' : kind === 'o3' ? v.toFixed(3) : Math.round(v);
+    return `<div class="aqc${wide ? ' wide' : ''}"><b>${label}</b><div class="row"><span class="val">${val}<small> ${kind === 'o3' ? 'ppm' : '㎍/㎥'}</small></span>
       ${gi >= 0 ? `<span class="badge g${gi}">${GR[gi]}</span>` : ''}</div>
       <div class="scale" style="background:${grad}">${v == null ? '' : `<i style="left:${Math.min(v / max * 100, 100).toFixed(1)}%"></i>`}</div></div>`;
   };
-  $('#airtop').innerHTML = `<p class="tip">${tips[Math.max(worst, 0)]}</p><div class="aqgrid">${card('미세먼지 PM10', c.pm10, g10, 'pm10', 200)}${card('초미세먼지 PM2.5', c.pm2_5, g25, 'pm25', 100)}</div>`;
+  const o3 = toPpm(c.ozone), go = gradeIdx(o3, 'o3');
+  const o3tip = go >= 2 ? `<p class="o3tip">오존이 ${GR[go]}이에요. 햇빛 강한 한낮(오후 2~5시)에는 바깥 운동을 줄이세요.</p>` : '';
+  $('#airtop').innerHTML = `<p class="tip">${tips[Math.max(worst, 0)]}</p><div class="aqgrid">${card('미세먼지 PM10', c.pm10, g10, 'pm10', 200)}${card('초미세먼지 PM2.5', c.pm2_5, g25, 'pm25', 100)}` +
+    (o3 != null ? card('오존 O₃', o3, go, 'o3', 0.2, true) : '') + `</div>${o3tip}`;
   const h = aq.hourly;
   if (!h || !h.time){ $('#airhrs').innerHTML = ''; return; }
   let s = h.time.findIndex(t => t.slice(0,13) === String(c.time).slice(0,13)); if (s < 0) s = 0;
@@ -761,10 +879,41 @@ function renderAir(){
       return `<i style="height:${v == null ? 0 : Math.max(Math.min(v / max * 100, 100), 6).toFixed(0)}%;background:${g < 0 ? 'transparent' : GC[g]}" title="${v ?? '-'}"></i>`;
     }).join('')}</div></div>`;
   const ticks = idx.map((i, k) => `<span>${k % 6 === 0 ? (k === 0 ? '지금' : hourText(Number(String(h.time[i]).slice(11,13)) || 0)) : ''}</span>`).join('');
-  $('#airhrs').innerHTML = `<h2 style="margin:0">앞으로 24시간</h2>${row('미세', h.pm10, 'pm10', 150)}${row('초미세', h.pm2_5, 'pm25', 75)}
+  $('#airhrs').innerHTML = `<h2 style="margin:0">앞으로 24시간</h2>${row('미세', h.pm10, 'pm10', 150)}${row('초미세', h.pm2_5, 'pm25', 75)}${h.ozone ? row('오존', h.ozone.map(toPpm), 'o3', 0.15) : ''}
     <div class="ticks">${ticks}</div><div class="legend">${GR.map((g, i) => `<span style="--c:${GC[i]}">${g}</span>`).join('')}</div>`;
 }
 
+function dayLen(a, b){
+  if (!a || !b) return '현지 시각';
+  const m = (+b.slice(11,13) * 60 + +b.slice(14,16)) - (+a.slice(11,13) * 60 + +a.slice(14,16));
+  return m > 0 ? `낮 길이 ${Math.floor(m / 60)}시간 ${m % 60}분` : '현지 시각';
+}
+/* 달 모양: days since a known new moon (2000-01-06 18:14 UTC), synodic month 29.53 d */
+function moonItem(){
+  const SYN = 29.530588853, age = (((Date.now() - Date.UTC(2000, 0, 6, 18, 14)) / 864e5) % SYN + SYN) % SYN;
+  const N = [[1.85,'🌑','삭 (안 보여요)'],[5.54,'🌒','초승달'],[9.23,'🌓','상현달'],[12.92,'🌔','차오르는 달'],[16.61,'🌕','보름달'],
+             [20.30,'🌖','기우는 달'],[24.0,'🌗','하현달'],[27.68,'🌘','그믐달'],[99,'🌑','삭 (안 보여요)']];
+  const [, e, name] = N.find(x => age < x[0]);
+  const toFull = (14.77 - age + SYN) % SYN, light = Math.round((1 - Math.cos(age / SYN * 2 * Math.PI)) / 2 * 100);
+  return ['달 모양', `${e} ${name}`, toFull < 0.8 || toFull > SYN - 0.8 ? `오늘이 보름 · 밝기 ${light}%` : `보름달까지 ${Math.round(toFull)}일 · 밝기 ${light}%`];
+}
+/* 달리기 지수: 체감온도, 비, 바람, 미세먼지, 자외선으로 100점에서 깎아요 */
+function runItem(d){
+  const c = d.current, h = d.hourly, f = c.apparent_temperature, why = [];
+  let sc = 100;
+  if (f < 8){ const k = Math.min((8 - f) * 3, 45); sc -= k; if (k >= 15) why.push('추워요'); }
+  if (f > 18){ const k = Math.min((f - 18) * 4, 60); sc -= k; if (k >= 15) why.push('더워요'); }
+  let s0 = h.time.findIndex(t => t.slice(0,13) === c.time.slice(0,13)); if (s0 < 0) s0 = 0;
+  const pop = Math.max(...h.precipitation_probability.slice(s0, s0 + 2).map(v => v ?? 0));
+  if (isWet(c.weather_code)){ sc -= 50; why.push(isSnow(c.weather_code) ? '눈이 와요' : '비가 와요'); }
+  else if (pop >= 60){ sc -= 25; why.push('곧 비 소식'); }
+  if (c.wind_speed_10m > 6){ sc -= Math.min((c.wind_speed_10m - 6) * 6, 30); why.push('바람이 세요'); }
+  const st = dustStepJS(); if (st != null && st >= 6){ sc -= st >= 7 ? 45 : 30; why.push('공기가 나빠요'); }
+  if (c.is_day && d.daily.uv_index_max[0] >= 8){ sc -= 10; why.push('자외선 강해요'); }
+  sc = Math.max(0, Math.round(sc));
+  const g = sc >= 80 ? '아주 좋음 🏃' : sc >= 60 ? '좋음' : sc >= 40 ? '보통' : '쉬어 가요';
+  return ['달리기 지수', `${sc} · ${g}`, why.length ? why.slice(0, 2).join(', ') : '뛰기 딱 좋은 날씨예요'];
+}
 function renderDetails(d){
   const c = d.current, dl = d.daily;
   const items = [
@@ -774,8 +923,10 @@ function renderDetails(d){
     ['자외선 지수', dl.uv_index_max[0] != null ? dl.uv_index_max[0].toFixed(1) : '-', dl.uv_index_max[0] != null ? '오늘 최고 · ' + uvGrade(dl.uv_index_max[0]) : ''],
     ['강수 확률', (dl.precipitation_probability_max[0] ?? 0) + '%', '오늘 최대'],
     ['구름 양', c.cloud_cover != null ? Math.round(c.cloud_cover) + '%' : '-', c.cloud_cover == null ? '' : c.cloud_cover < 30 ? '하늘이 맑아요' : c.cloud_cover < 70 ? '구름이 조금 있어요' : '구름이 많아요'],
-    ['일출 · 일몰', `${hhmm(dl.sunrise[0])} · ${hhmm(dl.sunset[0])}`, '현지 시각'],
-    ['기압', Math.round(c.pressure_msl) + ' hPa', '강수량 ' + (c.precipitation ?? 0) + ' mm']
+    ['일출 · 일몰', `${hhmm(dl.sunrise[0])} · ${hhmm(dl.sunset[0])}`, dayLen(dl.sunrise[0], dl.sunset[0])],
+    ['기압', Math.round(c.pressure_msl) + ' hPa', '강수량 ' + (c.precipitation ?? 0) + ' mm'],
+    moonItem(),
+    runItem(d)
   ];
   $('#dets').innerHTML = items.map(([b, s, sm]) => `<div class="det"><b>${b}</b><span>${s}</span><small>${esc(sm)}</small></div>`).join('');
 }
@@ -786,7 +937,8 @@ function markChips(){
 /* city shortcuts: shown in the dropdown when the search box is tapped */
 function showQuick(){
   results = [];
-  $('#res').innerHTML = `<div class="quick"><small>빠른 선택</small><div class="chips">${PRESETS.map((p, i) =>
+  const favRow = favs.length ? `<small>★ 즐겨찾기</small><div class="chips">${favs.map((p, i) => `<button class="chip${samePlace(p, state.place) ? ' on' : ''}" data-f="${i}">${esc(p.name)}</button>`).join('')}</div><small style="margin-top:12px">빠른 선택</small>` : '<small>빠른 선택</small>';
+  $('#res').innerHTML = `<div class="quick">${favRow}<div class="chips">${PRESETS.map((p, i) =>
     `<button class="chip${p.name === state.place.name && Math.abs(p.lat - state.place.lat) < .01 ? ' on' : ''}" data-i="${i}">${p.name}</button>`).join('')}</div>
     <small style="margin-top:12px">해외</small><div class="chips">${WORLD_QUICK.map(n => `<button class="chip${n === state.place.name ? ' on' : ''}" data-w="${esc(n)}">${n}</button>`).join('')}</div></div>`;
   $('#res').classList.add('on');
@@ -906,6 +1058,7 @@ function pick(r){ $('#res').classList.remove('on'); $('#q').value = ''; $('#q').
 $('#res').addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) pick(results[+b.dataset.r]); });
 document.addEventListener('click', e => { if (!e.target.closest('.search')) $('#res').classList.remove('on'); });
 $('#res').addEventListener('click', e => {
+  const fb = e.target.closest('[data-f]'); if (fb) return pick(favs[+fb.dataset.f]);
   const b = e.target.closest('[data-i]'); if (b) return pick(PRESETS[+b.dataset.i]);
   const w = e.target.closest('[data-w]'); if (!w) return;
   const c = WORLD.find(x => x[0] === w.dataset.w); if (c) pick({name:c[0], admin:'', country:c[1], lat:c[2], lon:c[3]});
@@ -1056,6 +1209,13 @@ function briefNotice(d){
   ].filter(Boolean);
   return {title: `오늘의 날씨 · ${state.place.name}`, body: lines.join('\n')};
 }
+function dustNotice(){
+  const c = state.aq && state.aq.current; if (!c) return null;
+  const g10 = gradeIdx(c.pm10, 'pm10'), g25 = gradeIdx(c.pm2_5, 'pm25'), g = Math.max(g10, g25);
+  const parts = [c.pm10 != null ? `미세먼지 ${Math.round(c.pm10)}㎍/㎥ ${GR[g10]}` : '', c.pm2_5 != null ? `초미세먼지 ${Math.round(c.pm2_5)}㎍/㎥ ${GR[g25]}` : ''].filter(Boolean).join(' · ');
+  return {g, title: g >= 3 ? '미세먼지 매우 나쁨 😷' : '미세먼지 나쁨 😷',
+    body: `${state.place.name} · ${parts}\n${g >= 3 ? '외출을 줄이고 창문을 닫아 두세요.' : '외출할 때 KF80 이상 마스크를 쓰세요.'}`};
+}
 function mockNotify(n){
   const m = $('#nmock');
   m.innerHTML = `<div class="ni">${icon('partly', true).replace('<svg', '<svg width="26" height="26"')}</div><div class="nb"><div class="nh">날씨 · 지금</div><b>${esc(n.title)}</b><p>${esc(n.body)}</p></div>`;
@@ -1065,24 +1225,29 @@ const hasNative = () => !!(window.Android && window.Android.getNotify);
 function loadNotify(){
   let v = null;
   try{ v = hasNative() ? JSON.parse(window.Android.getNotify()) : store.get('notify', null); }catch(e){}
-  v = Object.assign({rain:false, brief:false, time:'07:00'}, v || {});
-  $('#nRain').checked = v.rain; $('#nBrief').checked = v.brief; $('#nTime').value = v.time;
+  v = Object.assign({rain:false, brief:false, dust:false, time:'07:00'}, v || {});
+  $('#nRain').checked = v.rain; $('#nBrief').checked = v.brief; $('#nDust').checked = v.dust; $('#nTime').value = v.time;
   $('#nNote').textContent = hasNative() ? (v.permission === false ? '알림 권한이 꺼져 있어요. 켜면 알림이 와요.' : '') : '미리보기 화면에서는 알림 모양만 보여 드려요. 폰 앱에서는 실제로 알림이 와요.';
 }
 function saveNotify(){
-  const v = {rain:$('#nRain').checked, brief:$('#nBrief').checked, time:$('#nTime').value || '07:00'};
+  const v = {rain:$('#nRain').checked, brief:$('#nBrief').checked, dust:$('#nDust').checked, time:$('#nTime').value || '07:00'};
   if (hasNative()){ try{ window.Android.setNotify(JSON.stringify(v)); }catch(e){} } else store.set('notify', v);
-  toast(v.rain || v.brief ? '알림을 설정했어요' : '알림을 껐어요');
+  toast(v.rain || v.brief || v.dust ? '알림을 설정했어요' : '알림을 껐어요');
 }
 $('#bell').addEventListener('click', () => { loadNotify(); $('#sheet').hidden = false; $('#sClose').focus(); });
 $('#sClose').addEventListener('click', () => { $('#sheet').hidden = true; $('#bell').focus(); });
 $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') $('#sheet').hidden = true; });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden) $('#sheet').hidden = true; });
-['nRain','nBrief','nTime'].forEach(id => $('#' + id).addEventListener('change', saveNotify));
+['nRain','nBrief','nDust','nTime'].forEach(id => $('#' + id).addEventListener('change', saveNotify));
 $('#tRain').addEventListener('click', () => {
   const d = state.data; if (!d) return;
   const n = rainNotice(d) || {title:'곧 비가 와요 ☔', body:`${state.place.name}에 ${hourLabel('0000-00-00T' + String((new Date().getHours() + 1) % 24).padStart(2,'0'))}쯤부터 비 소식이 있어요 (확률 70%). 우산 챙기세요.\n※ 미리보기: 지금은 2시간 안에 비 소식이 없어서 예시로 보여 드려요.`};
   if (hasNative()) { try{ window.Android.testNotify('rain', JSON.stringify(n)); }catch(e){} } else mockNotify(n);
+});
+$('#tDust').addEventListener('click', () => {
+  let n = dustNotice();
+  if (!n || n.g < 2) n = {title:'미세먼지 나쁨 😷', body:`${state.place.name} · 미세먼지 95㎍/㎥ 나쁨 · 초미세먼지 41㎍/㎥ 나쁨\n외출할 때 KF80 이상 마스크를 쓰세요.\n※ 미리보기: 지금은 공기가 나쁘지 않아서 예시로 보여 드려요.`};
+  if (hasNative()) { try{ window.Android.testNotify('dust', JSON.stringify({title:n.title, body:n.body})); }catch(e){} } else mockNotify(n);
 });
 $('#tBrief').addEventListener('click', () => {
   const d = state.data; if (!d) return;
@@ -1114,6 +1279,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#setsh
 document.querySelectorAll('[data-card]').forEach(i => i.addEventListener('change', () => {
   P.hide = P.hide.filter(x => x !== i.dataset.card); if (!i.checked) P.hide.push(i.dataset.card);
   savePrefs(); applyCards();
+  if (i.dataset.card === 'radar' && i.checked) radarFor(state.place, true);
 }));
 document.querySelectorAll('.seg').forEach(g => g.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -1136,11 +1302,15 @@ $('#openNotif').addEventListener('click', () => { $('#setsheet').hidden = true; 
 const HOLD_MS = 2000;
 const cardsBox = $('#cards');
 function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 1800); }
-const DEFAULT_ORDER = ['hours', 'days', 'air', 'dets'];
+const DEFAULT_ORDER = ['hours', 'days', 'air', 'radar', 'dets'];
 function saveOrder(){ store.set('order2', [...cardsBox.children].map(c => c.dataset.id)); }
 (function restoreOrder(){
   const order = store.get('order2', null);
-  if (Array.isArray(order)) order.forEach(id => { const c = cardsBox.querySelector(`[data-id="${id}"]`); if (c) cardsBox.appendChild(c); });
+  if (!Array.isArray(order)) return;
+  // cards added in a later version go to their default spot (right after the card before them)
+  const full = order.slice();
+  DEFAULT_ORDER.forEach((id, i) => { if (!full.includes(id)){ const prev = DEFAULT_ORDER[i - 1], at = prev ? full.indexOf(prev) + 1 : 0; full.splice(at, 0, id); } });
+  full.forEach(id => { const c = cardsBox.querySelector(`[data-id="${id}"]`); if (c) cardsBox.appendChild(c); });
 })();
 cardsBox.querySelectorAll('.card').forEach(c => {
   c.insertAdjacentHTML('afterbegin', '<div class="hold"><i></i></div><div class="mv"><button data-mv="-1" aria-label="위로">▲</button><button data-mv="1" aria-label="아래로">▼</button><button data-mv="0">완료</button></div>');
@@ -1200,10 +1370,155 @@ window.addEventListener('pointercancel', endPointer);
 document.addEventListener('touchmove', e => { if (drag || press) { if (drag) e.preventDefault(); } }, {passive:false});
 document.addEventListener('pointerdown', e => { if (lifted && !e.target.closest('.card')) drop(); });
 
+/* ---------- 즐겨찾는 지역: ★ to save, swipe the top area left/right to switch ---------- */
+const FAV_MAX = 10;
+let favs = store.get('favs', []);
+const samePlace = (a, b) => a && b && Math.abs(a.lat - b.lat) < 0.005 && Math.abs(a.lon - b.lon) < 0.005;
+function favIndex(p){ return favs.findIndex(f => samePlace(f, p)); }
+function ring(){   // places you can swipe through: the saved ones, plus the current one if it isn't saved
+  const cur = state.place;
+  return favIndex(cur) >= 0 ? favs : [cur].concat(favs);
+}
+function renderDots(){
+  const r = ring(), box = $('#dots');
+  if (r.length < 2){ box.innerHTML = ''; return; }
+  const at = r.findIndex(x => samePlace(x, state.place));
+  box.innerHTML = r.map((x, i) => `<i class="${i === at ? 'on' : ''}"></i>`).join('');
+}
+function toggleFav(){
+  const p = state.place, i = favIndex(p);
+  if (i >= 0){ favs.splice(i, 1); toast('즐겨찾기에서 뺐어요'); }
+  else {
+    if (favs.length >= FAV_MAX) return toast(`즐겨찾기는 ${FAV_MAX}곳까지 저장돼요`);
+    favs.push({name:p.name, admin:p.admin || '', country:p.country || '', lat:p.lat, lon:p.lon, gps:!!p.gps});
+    toast(favs.length > 1 ? '즐겨찾기에 추가했어요 · 위쪽을 좌우로 밀어서 바꿔요' : '즐겨찾기에 추가했어요');
+  }
+  store.set('favs', favs); render();
+}
+$('#hero').addEventListener('click', e => { if (e.target.closest('#fav')) toggleFav(); });
+function go(dir){
+  const r = ring(); if (r.length < 2) return;
+  const at = Math.max(0, r.findIndex(x => samePlace(x, state.place)));
+  const next = r[(at + dir + r.length) % r.length], hero = $('#hero');
+  hero.classList.add(dir > 0 ? 'out-l' : 'out-r');
+  setTimeout(() => {
+    hero.classList.remove('out-l', 'out-r'); hero.classList.add(dir > 0 ? 'in-l' : 'in-r');
+    loadPlace(next);
+    requestAnimationFrame(() => requestAnimationFrame(() => hero.classList.remove('in-l', 'in-r')));
+    haptic();
+  }, 200);
+}
+(function swipe(){
+  let sx = 0, sy = 0, on = false;
+  const zone = $('#hero');
+  zone.addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; on = true; }, {passive:true});
+  zone.addEventListener('touchend', e => {
+    if (!on) return; on = false;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+  }, {passive:true});
+  // mouse (preview on a computer)
+  zone.addEventListener('mousedown', e => { sx = e.clientX; sy = e.clientY; on = true; });
+  zone.addEventListener('mouseup', e => {
+    if (!on) return; on = false;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+  });
+  addEventListener('keydown', e => {
+    if (e.target.closest('input, select, textarea') || !$('#setsheet').hidden || !$('#sheet').hidden) return;
+    if (e.key === 'ArrowLeft') go(-1); else if (e.key === 'ArrowRight') go(1);
+  });
+})();
+let prefT;
+function prefetchNeighbours(){   // so a swipe shows the next place right away
+  clearTimeout(prefT);
+  prefT = setTimeout(() => {
+    const r = ring(); if (r.length < 2) return;
+    const at = Math.max(0, r.findIndex(x => samePlace(x, state.place)));
+    [r[(at + 1) % r.length], r[(at - 1 + r.length) % r.length]].forEach(p => fetchPlace(p).catch(() => {}));
+  }, 1500);
+}
+
+/* ---------- 비구름 레이더: RainViewer past radar (free tier: 2 h, zoom ≤ 7) over CARTO dark map ---------- */
+const RAD = {z: 6, frames: [], host: '', i: 0, play: null, at: null, loadedAt: 0, seen: false};
+function tilesFor(lat, lon, z, w, h){
+  const n = 2 ** z, x = (lon + 180) / 360 * n, r = lat * Math.PI / 180;
+  const y = (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n;
+  const cx = x * 256, cy = y * 256, list = [];
+  for (let tx = Math.floor((cx - w / 2) / 256); tx <= Math.floor((cx + w / 2) / 256); tx++)
+    for (let ty = Math.floor((cy - h / 2) / 256); ty <= Math.floor((cy + h / 2) / 256); ty++){
+      if (ty < 0 || ty >= n) continue;
+      list.push({x: ((tx % n) + n) % n, y: ty, left: Math.round(tx * 256 - cx + w / 2), top: Math.round(ty * 256 - cy + h / 2)});
+    }
+  return list;
+}
+async function radarFor(p, again){
+  const card = document.querySelector('[data-id="radar"]');
+  if (!card || card.hidden) return;
+  if (!again && RAD.at && samePlace(RAD.at, p) && Date.now() - RAD.loadedAt < 10 * 60 * 1000) return;
+  if (!RAD.seen){ RAD.pending = p; return; }   // wait until the card is on screen
+  RAD.at = p; RAD.loadedAt = Date.now();
+  const box = $('#rmap'), msg = $('#rmsg');
+  try{
+    const j = await getJSON('https://api.rainviewer.com/public/weather-maps.json');
+    RAD.host = j.host; RAD.frames = (j.radar && j.radar.past || []).slice(-7);   // last hour, 10-minute steps
+    if (!RAD.frames.length) throw new Error('no frames');
+  }catch(e){ msg.textContent = '레이더를 불러오지 못했어요'; msg.hidden = false; return; }
+  const w = box.clientWidth || 340, h = box.clientHeight || 230, z = RAD.z, t = tilesFor(p.lat, p.lon, z, w, h), sub = 'abcd';
+  box.querySelectorAll('img').forEach(i => i.remove());
+  const add = (src, cls, k) => {
+    const im = new Image(); im.alt = ''; im.className = cls; im.decoding = 'async';
+    im.onerror = () => im.remove(); im.style.left = k.left + 'px'; im.style.top = k.top + 'px'; im.src = src;
+    box.insertBefore(im, box.querySelector('.zm')); return im;
+  };
+  t.forEach((k, n) => add(`https://${sub[n % 4]}.basemaps.cartocdn.com/dark_all/${z}/${k.x}/${k.y}.png`, 'base', k));
+  RAD.frames.forEach((f, fi) => t.forEach(k => add(`${RAD.host}${f.path}/256/${z}/${k.x}/${k.y}/2/1_1.png`, 'rl f' + fi, k)));
+  t.forEach(k => add(`https://${sub[0]}.basemaps.cartocdn.com/dark_only_labels/${z}/${k.x}/${k.y}.png`, 'lab', k));
+  msg.hidden = true;
+  $('#rslide').max = RAD.frames.length - 1;
+  showFrame(RAD.frames.length - 1);
+  startRadar();
+}
+function showFrame(i){
+  RAD.i = i;
+  $('#rmap').querySelectorAll('.rl').forEach(im => im.classList.toggle('on', im.classList.contains('f' + i)));
+  $('#rslide').value = i;
+  const f = RAD.frames[i]; if (!f) return;
+  const d = new Date(f.time * 1000), h = d.getHours(), m = String(d.getMinutes()).padStart(2, '0');
+  const ago = Math.round((Date.now() / 1000 - f.time) / 60);
+  $('#rtime').textContent = i === RAD.frames.length - 1 ? `최근 ${P.clock === '12' ? (h < 12 ? '오전' : '오후') + ' ' + (h % 12 || 12) : h}:${m}` : `${ago}분 전`;
+}
+function startRadar(){
+  stopRadar(); $('#rplay').textContent = '❚❚'; $('#rplay').setAttribute('aria-label', '멈춤');
+  RAD.play = setInterval(() => {
+    const last = RAD.frames.length - 1;
+    showFrame(RAD.i >= last ? 0 : RAD.i + 1);
+    if (RAD.i === last){ clearInterval(RAD.play); RAD.play = setTimeout(startRadar, 1600); }   // rest on "now"
+  }, 650);
+}
+function stopRadar(){ clearInterval(RAD.play); clearTimeout(RAD.play); RAD.play = null; $('#rplay').textContent = '▶'; $('#rplay').setAttribute('aria-label', '재생'); }
+$('#rplay').addEventListener('click', () => RAD.play ? stopRadar() : startRadar());
+$('#rslide').addEventListener('input', e => { stopRadar(); showFrame(+e.target.value); });
+$('#rmap').addEventListener('click', e => {
+  const b = e.target.closest('[data-z]'); if (!b) return;
+  const z = Math.min(7, Math.max(4, RAD.z + +b.dataset.z));
+  if (z === RAD.z) return toast(z === 7 ? '더 크게는 볼 수 없어요' : '더 작게는 볼 수 없어요');
+  RAD.z = z; radarFor(state.place, true);
+});
+if ('IntersectionObserver' in window){
+  new IntersectionObserver(es => es.forEach(en => {
+    if (!en.isIntersecting) { if (RAD.play) stopRadar(), RAD.paused = true; return; }
+    if (!RAD.seen){ RAD.seen = true; radarFor(RAD.pending || state.place); }
+    else if (RAD.paused){ RAD.paused = false; startRadar(); }
+  }), {rootMargin: '100px'}).observe(document.querySelector('[data-id="radar"]'));
+} else RAD.seen = true;
+document.addEventListener('visibilitychange', () => { if (document.hidden && RAD.play){ stopRadar(); RAD.paused = true; } });
+
+
 applyCards();
 markChips();
 loadPlace(state.place);
-setInterval(() => { if (!document.hidden) loadPlace(state.place); }, 15 * 60 * 1000);
+setInterval(() => { if (!document.hidden) loadPlace(state.place, true); }, 15 * 60 * 1000);
 }
 </script>
 </body>

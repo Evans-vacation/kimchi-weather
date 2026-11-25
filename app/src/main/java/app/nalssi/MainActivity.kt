@@ -204,7 +204,7 @@ class MainActivity : Activity() {
         fun setNotify(json: String) {
             try { Notifier.save(applicationContext, json) } catch (e: Exception) { return }
             val o = try { JSONObject(json) } catch (e: Exception) { return }
-            if ((o.optBoolean("rain") || o.optBoolean("brief")) && !Notifier.canPost(applicationContext) &&
+            if ((o.optBoolean("rain") || o.optBoolean("brief") || o.optBoolean("dust")) && !Notifier.canPost(applicationContext) &&
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
             ) {
                 runOnUiThread { requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIFY) }
@@ -222,8 +222,8 @@ class MainActivity : Activity() {
             val o = try { JSONObject(json) } catch (e: Exception) { return }
             Notifier.post(
                 ctx,
-                if (kind == "rain") Notifier.CH_RAIN else Notifier.CH_BRIEF,
-                if (kind == "rain") 201 else 202,
+                when (kind) { "rain" -> Notifier.CH_RAIN; "dust" -> Notifier.CH_DUST; else -> Notifier.CH_BRIEF },
+                when (kind) { "rain" -> 201; "dust" -> 203; else -> 202 },
                 o.optString("title"), o.optString("body")
             )
         }

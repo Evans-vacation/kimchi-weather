@@ -21,6 +21,8 @@ import kotlin.math.roundToInt
  * Notifications:
  *  - 비·눈 시작 알림: every ~30 min, checks the next 2 hours; quiet 23:00–06:00; at most once per 3 h,
  *    and not again until it has been dry for 2 h.
+ *  - 미세먼지 나쁨 알림: same 30-min check; once when PM10/PM2.5 reaches 나쁨, again if it gets worse
+ *    or after 8 h; quiet 22:00–07:00.
  *  - 아침 브리핑: once a day at the chosen time.
  * Wording matches the in-app preview (weather.html: rainNotice / briefNotice).
  */
@@ -28,6 +30,7 @@ object Notifier {
     private const val PREFS = "nalssi_notify"
     const val CH_RAIN = "rain"
     const val CH_BRIEF = "brief"
+    const val CH_DUST = "dust"
     const val ACTION_RAIN = "app.nalssi.RAIN_CHECK"
     const val ACTION_BRIEF = "app.nalssi.BRIEF"
 
@@ -39,6 +42,7 @@ object Notifier {
             .put("rain", p.getBoolean("rain", false))
             .put("brief", p.getBoolean("brief", false))
             .put("time", p.getString("time", "07:00"))
+            .put("dust", p.getBoolean("dust", false))
             .put("permission", canPost(ctx))
     }
 
@@ -48,6 +52,7 @@ object Notifier {
             .putBoolean("rain", o.optBoolean("rain", false))
             .putBoolean("brief", o.optBoolean("brief", false))
             .putString("time", o.optString("time", "07:00").ifBlank { "07:00" })
+            .putBoolean("dust", o.optBoolean("dust", false))
             .apply()
         schedule(ctx)
     }
@@ -67,6 +72,10 @@ object Notifier {
         nm.createNotificationChannel(
             NotificationChannel(CH_BRIEF, "아침 날씨 브리핑", NotificationManager.IMPORTANCE_DEFAULT)
                 .apply { description = "매일 정한 시간에 오늘 날씨" }
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(CH_DUST, "미세먼지 나쁨 알림", NotificationManager.IMPORTANCE_DEFAULT)
+                .apply { description = "미세먼지·초미세먼지가 나쁨 이상일 때" }
         )
     }
 
@@ -88,7 +97,7 @@ object Notifier {
         val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val rain = alarmIntent(ctx, ACTION_RAIN)
         am.cancel(rain)
-        if (p.getBoolean("rain", false)) {
+        if (p.getBoolean("rain", false) || p.getBoolean("dust", false)) {
             am.setInexactRepeating(
                 AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 SystemClock.elapsedRealtime() + 5 * 60 * 1000L,
@@ -186,12 +195,55 @@ object Notifier {
 
     // ---- jobs (background thread) ---------------------------------------------------------
 
-    fun checkRain(ctx: Context) {
+    /** Every ~30 min: rain/snow and dust checks share one fetch. */
+    fun periodic(ctx: Context) {
         val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (!p.getBoolean("rain", false)) return
-        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val rain = p.getBoolean("rain", false)
+        val dust = p.getBoolean("dust", false)
+        if (!rain && !dust) return
         val place = Prefs.place(ctx)
         val w = try { WeatherRepo.fetch(ctx, place) } catch (e: Exception) { return }
+        if (rain) checkRain(ctx, place, w)
+        if (dust) checkDust(ctx, place, w)
+    }
+
+    /** 0 좋음 · 1 보통 · 2 나쁨 · 3 매우 나쁨 (환경부 기준), worse of PM10 / PM2.5. */
+    private fun dustGrade(w: Weather): Int {
+        fun g(v: Double?, cuts: List<Double>) = v?.let { x -> cuts.count { x > it } } ?: -1
+        return maxOf(g(w.pm10, listOf(30.0, 80.0, 150.0)), g(w.pm25, listOf(15.0, 35.0, 75.0)))
+    }
+
+    fun dustText(place: Place, w: Weather): Pair<String, String>? {
+        val g = dustGrade(w)
+        if (g < 2) return null
+        val parts = listOfNotNull(
+            w.pm10?.let { "미세먼지 ${it.roundToInt()}㎍/㎥ ${Wx.dust(it, true)}" },
+            w.pm25?.let { "초미세먼지 ${it.roundToInt()}㎍/㎥ ${Wx.dust(it, false)}" }
+        ).joinToString(" · ")
+        val title = if (g >= 3) "미세먼지 매우 나쁨 😷" else "미세먼지 나쁨 😷"
+        val tip = if (g >= 3) "외출을 줄이고 창문을 닫아 두세요." else "외출할 때 KF80 이상 마스크를 쓰세요."
+        return title to "${place.name} · $parts\n$tip"
+    }
+
+    /** Once when the air turns 나쁨, again only after it has been better for a while; quiet 22:00–07:00. */
+    private fun checkDust(ctx: Context, place: Place, w: Weather) {
+        val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val g = dustGrade(w)
+        if (g < 0) return
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val now = System.currentTimeMillis()
+        val last = p.getInt("dustLevel", 0)
+        if (g < 2) { if (now - p.getLong("dustAlert", 0L) > 2 * 3600_000L) p.edit().putInt("dustLevel", 0).apply(); return }
+        if (hour >= 22 || hour < 7) return
+        if (g <= last && now - p.getLong("dustAlert", 0L) < 8 * 3600_000L) return   // same level, already told
+        val (title, body) = dustText(place, w) ?: return
+        post(ctx, CH_DUST, 103, title, body)
+        p.edit().putInt("dustLevel", g).putLong("dustAlert", now).apply()
+    }
+
+    private fun checkRain(ctx: Context, place: Place, w: Weather) {
+        val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         val now = System.currentTimeMillis()
         if (isWet(w.code)) {                      // already raining: remember, don't announce
             p.edit().putLong("lastWet", now).apply()
@@ -224,7 +276,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 val pending = goAsync()
                 Thread {
                     try {
-                        if (intent.action == Notifier.ACTION_RAIN) Notifier.checkRain(ctx) else Notifier.briefing(ctx)
+                        if (intent.action == Notifier.ACTION_RAIN) Notifier.periodic(ctx) else Notifier.briefing(ctx)
                     } finally {
                         if (intent.action == Notifier.ACTION_BRIEF) Notifier.scheduleBrief(ctx)   // tomorrow
                         pending.finish()
