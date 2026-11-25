@@ -3,6 +3,8 @@ package app.nalssi
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
+import android.provider.MediaStore
+import android.widget.Toast
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -38,6 +40,7 @@ class WidgetConfigActivity : Activity() {
     private val swatches = ArrayList<Pair<View, Int>>()
     private var bgGroup: RadioGroup? = null
     private val bgButtons = HashMap<String, Int>()
+    private lateinit var photoBtn: Button
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).roundToInt()
 
@@ -154,6 +157,11 @@ class WidgetConfigActivity : Activity() {
         colorBox.addView(hue, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)))
         colorBox.addView(light, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)))
         col.addView(colorBox)
+        photoBtn = Button(this).apply {
+            text = "내 사진 고르기"
+            setOnClickListener { pickPhoto() }
+        }
+        col.addView(photoBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(8) })
         paintSwatches()
 
         // Transparency
@@ -250,7 +258,47 @@ class WidgetConfigActivity : Activity() {
         return t
     }
 
+    private fun pickPhoto() {
+        val pick = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Intent(MediaStore.ACTION_PICK_IMAGES)
+        } else {
+            Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*")
+        }
+        try {
+            @Suppress("DEPRECATION")
+            startActivityForResult(pick, REQ_PHOTO)
+        } catch (e: Exception) {
+            Toast.makeText(this, "사진을 고를 수 없어요", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    @Deprecated("Activity result API needs AndroidX; this app keeps no dependencies")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_PHOTO) return
+        val uri = data?.data
+        if (resultCode != RESULT_OK || uri == null) {
+            if (!Photos.has(this, widgetId) && style.bg == "photo") setBg("scene")
+            return
+        }
+        Toast.makeText(this, "사진을 준비하고 있어요…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val ok = Photos.save(applicationContext, widgetId, uri)
+            runOnUiThread {
+                if (ok) setBg("photo") else {
+                    Toast.makeText(this, "이 사진은 쓸 수 없어요", Toast.LENGTH_SHORT).show()
+                    if (!Photos.has(this, widgetId)) setBg("scene")
+                }
+            }
+        }.start()
+    }
+
     private fun setBg(key: String) {
+        if (key == "photo" && !Photos.has(this, widgetId)) {
+            pickPhoto()
+            return
+        }
         style = style.copy(bg = key)
         bgButtons[key]?.let { bgGroup?.check(it) }
         paintSwatches()
@@ -264,6 +312,7 @@ class WidgetConfigActivity : Activity() {
 
     private fun paintSwatches() {
         colorBox.alpha = if (style.bg == "color") 1f else 0.45f
+        if (::photoBtn.isInitialized) photoBtn.text = if (Photos.has(this, widgetId)) "내 사진 바꾸기" else "내 사진 고르기"
         for ((v, c) in swatches) {
             v.background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
@@ -280,7 +329,7 @@ class WidgetConfigActivity : Activity() {
 
     private fun refreshPreview() {
         val w = WeatherRepo.cached(this) ?: WidgetUpdater.sample()
-        val rv = WidgetUpdater.build(this, kind, Prefs.place(this), w, style)
+        val rv = WidgetUpdater.build(this, kind, Prefs.place(this), w, style, widgetId)
         preview.removeAllViews()
         try {
             val v = rv.apply(applicationContext, preview)
@@ -304,5 +353,9 @@ class WidgetConfigActivity : Activity() {
         Thread { WidgetUpdater.refreshAll(ctx) }.start()
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         finish()
+    }
+
+    companion object {
+        private const val REQ_PHOTO = 7
     }
 }

@@ -2,13 +2,10 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
     android:orientation="horizontal" android:gravity="center_vertical">
-    <TextView android:id="@+id/d_name" android:shadowColor="#99000000" android:shadowRadius="4" android:shadowDy="1" android:layout_width="40dp" android:layout_height="wrap_content"
-        android:text="오늘" android:textColor="#FFFFFF" android:textSize="13sp" android:maxLines="1"/>
-    <ImageView android:id="@+id/d_icon" android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_w_clear_day"/>
-    <TextView android:id="@+id/d_pop" android:shadowColor="#99000000" android:shadowRadius="4" android:shadowDy="1" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
-        android:layout_marginStart="8dp" android:text="" android:textColor="#9FD6FF" android:textSize="12sp" android:maxLines="1"/>
-    <TextView android:id="@+id/d_min" android:shadowColor="#99000000" android:shadowRadius="4" android:shadowDy="1" android:layout_width="40dp" android:layout_height="wrap_content" android:gravity="end"
-        android:text="--°" android:textColor="#CCFFFFFF" android:textSize="13sp" android:maxLines="1"/>
-    <TextView android:id="@+id/d_max" android:shadowColor="#99000000" android:shadowRadius="4" android:shadowDy="1" android:layout_width="40dp" android:layout_height="wrap_content" android:gravity="end"
-        android:text="--°" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" android:maxLines="1"/>
+    <TextView android:id="@+id/d_name" android:shadowColor="#99000000" android:shadowRadius="4" android:shadowDy="1" android:layout_width="34dp" android:layout_height="wrap_content" android:text="오늘" android:textColor="#FFFFFF" android:textSize="13sp" android:maxLines="1" />
+    <ImageView android:id="@+id/d_icon" android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_w_clear_day"/>
+    <TextView android:id="@+id/d_pop" android:shadowColor="#99000000" android:shadowRadius="4" android:shadowDy="1" android:layout_width="36dp" android:layout_height="wrap_content" android:text="" android:textColor="#9FD6FF" android:textSize="11sp" android:maxLines="1" android:layout_marginStart="6dp"/>
+    <ImageView android:id="@+id/d_range" android:layout_width="0dp" android:layout_weight="1" android:layout_height="6dp" android:layout_marginStart="4dp" android:layout_marginEnd="8dp" android:scaleType="fitXY" android:importantForAccessibility="no"/>
+    <TextView android:id="@+id/d_min" android:shadowColor="#99000000" android:shadowRadius="4" android:shadowDy="1" android:layout_width="32dp" android:layout_height="wrap_content" android:text="--°" android:textColor="#CCFFFFFF" android:textSize="13sp" android:maxLines="1" android:gravity="end"/>
+    <TextView android:id="@+id/d_max" android:shadowColor="#99000000" android:shadowRadius="4" android:shadowDy="1" android:layout_width="34dp" android:layout_height="wrap_content" android:text="--°" android:textColor="#FFFFFF" android:textSize="13sp" android:maxLines="1" android:gravity="end" android:textStyle="bold"/>
 </LinearLayout>

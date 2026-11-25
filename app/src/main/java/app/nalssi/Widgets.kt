@@ -6,6 +6,12 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Shader
 import android.graphics.Typeface
 import android.text.SpannableString
 import android.text.Spanned
@@ -52,7 +58,7 @@ object WidgetPrefs {
         "mono" to "고정폭"
     )
     val SIZES = listOf(0.85f to "작게", 1f to "보통", 1.15f to "크게", 1.3f to "아주 크게")
-    val BACKGROUNDS = listOf("scene" to "날씨 그림 (자동)", "auto" to "날씨 색 (자동)", "color" to "내가 고른 색")
+    val BACKGROUNDS = listOf("scene" to "날씨 그림 (자동)", "auto" to "날씨 색 (자동)", "color" to "내가 고른 색", "photo" to "내 사진")
     val COLORS = listOf(
         0xFF1F2A44, 0xFF2F6AA6, 0xFF3A8FB7, 0xFF2E8B7A, 0xFF3B7D4F, 0xFF5B4B8A,
         0xFF8E4B7E, 0xFFB5546B, 0xFFC0703A, 0xFF8A6B3E, 0xFF4A4F57, 0xFF16181C
@@ -105,7 +111,10 @@ abstract class BaseWidget : AppWidgetProvider() {
     }
 
     override fun onDeleted(context: Context, ids: IntArray) {
-        for (id in ids) WidgetPrefs.delete(context, id)
+        for (id in ids) {
+            WidgetPrefs.delete(context, id)
+            Photos.delete(context, id)
+        }
     }
 }
 
@@ -149,7 +158,7 @@ object WidgetUpdater {
         for ((kind, ids) in all) {
             for (id in ids) {
                 if (w != null) {
-                    val rv = build(ctx, kind, place, w, WidgetPrefs.get(ctx, id))
+                    val rv = build(ctx, kind, place, w, WidgetPrefs.get(ctx, id), id)
                     if (failed && kind != Kind.BAR) rv.setTextViewText(R.id.updated, "연결 실패 · 이전 정보")
                     mgr.updateAppWidget(id, rv)
                 } else {
@@ -166,7 +175,7 @@ object WidgetUpdater {
     fun renderOne(ctx: Context, id: Int) {
         val kind = kindOf(ctx, id) ?: return
         val w = WeatherRepo.cached(ctx) ?: return
-        AppWidgetManager.getInstance(ctx).updateAppWidget(id, build(ctx, kind, Prefs.place(ctx), w, WidgetPrefs.get(ctx, id)))
+        AppWidgetManager.getInstance(ctx).updateAppWidget(id, build(ctx, kind, Prefs.place(ctx), w, WidgetPrefs.get(ctx, id), id))
     }
 
     private fun openApp(ctx: Context): PendingIntent {
@@ -203,7 +212,36 @@ object WidgetUpdater {
         return Weather(4.0, 1.0, 2, true, hours, days, 38.0, 18.0, System.currentTimeMillis())
     }
 
-    fun build(ctx: Context, kind: Kind, place: Place, w: Weather, st: WStyle): RemoteViews {
+    /** 3-cell dust meter (see Wx.dustStep): hidden when there is no reading. */
+    private fun setMeter(rv: RemoteViews, container: Int, cells: IntArray, step: Int?) {
+        if (step == null) {
+            rv.setViewVisibility(container, View.GONE)
+            return
+        }
+        rv.setViewVisibility(container, View.VISIBLE)
+        val lit = Wx.dustCells(step)
+        cells.forEachIndexed { i, id -> rv.setImageViewResource(id, if (i < lit) Wx.dustCell(step) else R.drawable.cell_off) }
+    }
+
+    /** Little min–max bar for the 5-day list, like the app's 7-day card. */
+    private fun rangeBar(min: Double, max: Double, lo: Double, hi: Double): Bitmap {
+        val w = 240
+        val h = 12
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val track = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x38FFFFFF }
+        c.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), h / 2f, h / 2f, track)
+        val span = (hi - lo).coerceAtLeast(1.0)
+        val x0 = ((min - lo) / span * w).toFloat()
+        val x1 = ((max - lo) / span * w).toFloat().coerceAtLeast(x0 + h)
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(x0, 0f, x1, 0f, 0xFF7CC4FF.toInt(), 0xFFFFC93C.toInt(), Shader.TileMode.CLAMP)
+        }
+        c.drawRoundRect(RectF(x0, 0f, x1, h.toFloat()), h / 2f, h / 2f, fill)
+        return bmp
+    }
+
+    fun build(ctx: Context, kind: Kind, place: Place, w: Weather, st: WStyle, widgetId: Int = -1): RemoteViews {
         val pkg = ctx.packageName
         val rv = RemoteViews(pkg, kind.layout)
         fun text(v: RemoteViews, id: Int, value: String, sp: Float) {
@@ -217,6 +255,14 @@ object WidgetUpdater {
                 rv.setImageViewResource(R.id.bg, R.drawable.bg_solid)
                 rv.setInt(R.id.bg, "setColorFilter", st.color)
                 rv.setViewVisibility(R.id.scrim, View.GONE)
+            }
+            "photo" -> {
+                val photo = Photos.uri(ctx, widgetId)
+                if (photo != null) rv.setImageViewUri(R.id.bg, photo)
+                else rv.setImageViewUri(R.id.bg, Wx.scene(ctx, w.code, w.isDay, Prefs.theme(ctx)))
+                rv.setInt(R.id.bg, "setColorFilter", 0)
+                rv.setViewVisibility(R.id.scrim, View.VISIBLE)
+                rv.setInt(R.id.scrim, "setImageAlpha", alpha)
             }
             "auto" -> {
                 rv.setImageViewResource(R.id.bg, Wx.bg(w.code, w.isDay))
@@ -235,11 +281,12 @@ object WidgetUpdater {
         rv.setImageViewResource(R.id.icon, Wx.icon(w.code, w.isDay))
 
         val today = w.days.firstOrNull()
-        val tempSp = when (kind) { Kind.BAR -> 26f; Kind.SMALL -> 42f; else -> 40f }
-        text(rv, R.id.city, place.name, if (kind == Kind.BAR) 16f else 14f)
+        val tempSp = when (kind) { Kind.BAR -> 26f; Kind.SMALL -> 44f; Kind.MEDIUM -> 26f; Kind.LARGE -> 34f }
+        text(rv, R.id.city, place.name, if (kind == Kind.SMALL) 19f else 16f)
         text(rv, R.id.temp, deg(w.temp), tempSp)
-        text(rv, R.id.cond, Wx.label(w.code), when (kind) { Kind.BAR -> 13f; Kind.SMALL -> 14f; else -> 13f })
+        text(rv, R.id.cond, Wx.label(w.code), 13f)
 
+        // ---- 1×4: unchanged ----
         if (kind == Kind.BAR) {
             text(rv, R.id.hl, if (today != null) "${deg(today.max)} / ${deg(today.min)}" else "", 14f)
             text(rv, R.id.tip, Wx.advice(w), 12f)
@@ -271,44 +318,75 @@ object WidgetUpdater {
             return rv
         }
 
-        text(rv, R.id.hl, if (today != null) "${deg(today.max)} / ${deg(today.min)} · 체감 ${deg(w.feels)}" else "체감 ${deg(w.feels)}", 12f)
-        val time = SimpleDateFormat("HH:mm", Locale.KOREA).format(Date(w.fetchedAt))
-        text(rv, R.id.updated, "$time 업데이트", 10f)
+        // ---- shared by 2×2, 4×2, 4×4: tip, today's range, dust word + 3-cell meter ----
+        val range = if (today != null) "${deg(today.max)} / ${deg(today.min)}" else ""
+        val step = Wx.dustStep(w.pm10, w.pm25)
+        text(rv, R.id.tip, Wx.advice(w), 12f)
+        text(rv, R.id.dust, if (step != null) "미세 ${Wx.dustWord(step).removePrefix("아주 ")}" else "", if (kind == Kind.SMALL) 11f else 13f)
+        setMeter(rv, R.id.meter, intArrayOf(R.id.m1, R.id.m2, R.id.m3), step)
 
-        if (kind == Kind.MEDIUM || kind == Kind.LARGE) {
-            rv.removeAllViews(R.id.hourly)
-            val count = if (kind == Kind.LARGE) 6 else 5
-            for (h in w.hours.drop(1).take(count)) {
-                val item = RemoteViews(pkg, R.layout.item_hour)
-                text(item, R.id.h_time, "${h.time.substring(11, 13).toInt()}시", 11f)
-                item.setImageViewResource(R.id.h_icon, Wx.icon(h.code, h.isDay))
-                text(item, R.id.h_temp, deg(h.temp), 13f)
-                text(item, R.id.h_pop, if (h.pop >= 20) "${h.pop}%" else "", 10f)
-                rv.addView(R.id.hourly, item)
-            }
+        if (kind == Kind.SMALL) {
+            text(rv, R.id.cond, if (range.isNotEmpty()) "${Wx.label(w.code)} · $range" else Wx.label(w.code), 13f)
+            return rv
         }
+        text(rv, R.id.hl, range, 14f)
 
-        if (kind == Kind.LARGE) {
-            val pm10 = w.pm10?.let { "미세 ${Wx.dust(it, true)} ${it.roundToInt()}" } ?: "미세 -"
-            val pm25 = w.pm25?.let { "초미세 ${Wx.dust(it, false)} ${it.roundToInt()}" } ?: "초미세 -"
-            text(rv, R.id.dust, "$pm10  ·  $pm25 ㎍/㎥", 12f)
-
-            rv.removeAllViews(R.id.daily)
-            w.days.take(5).forEachIndexed { i, d ->
-                val item = RemoteViews(pkg, R.layout.item_day)
-                val name = if (i == 0) "오늘" else try {
+        // 4×2: this week (from tomorrow, 6 days) under the top row
+        if (kind == Kind.MEDIUM) {
+            rv.removeAllViews(R.id.hourly)
+            w.days.drop(1).take(6).forEach { d ->
+                val item = RemoteViews(pkg, R.layout.item_wday)
+                val name = try {
                     LocalDate.parse(d.date).dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREAN)
                 } catch (e: Exception) {
-                    d.date.takeLast(5)
+                    ""
                 }
-                text(item, R.id.d_name, name, 13f)
-                item.setImageViewResource(R.id.d_icon, Wx.icon(d.code, true))
-                text(item, R.id.d_pop, if (d.pop >= 10) "${d.pop}%" else "", 12f)
-                text(item, R.id.d_min, deg(d.min), 13f)
-                text(item, R.id.d_max, deg(d.max), 13f)
-                rv.addView(R.id.daily, item)
+                text(item, R.id.wd_name, name, 12f)
+                item.setImageViewResource(R.id.wd_icon, Wx.icon(d.code, true))
+                text(item, R.id.wd_max, deg(d.max), 13f)
+                text(item, R.id.wd_min, deg(d.min), 11f)
+                rv.addView(R.id.hourly, item)
             }
+            return rv
         }
+
+        // 4×4: next 6 hours
+        rv.removeAllViews(R.id.hourly)
+        for (h in w.hours.drop(1).take(6)) {
+            val item = RemoteViews(pkg, R.layout.item_hour)
+            text(item, R.id.h_time, "${h.time.substring(11, 13).toInt()}시", 11f)
+            item.setImageViewResource(R.id.h_icon, Wx.icon(h.code, h.isDay))
+            text(item, R.id.h_temp, deg(h.temp), 13f)
+            text(item, R.id.h_pop, if (h.pop >= 20) "${h.pop}%" else "", 10f)
+            rv.addView(R.id.hourly, item)
+        }
+
+        // ---- 4×4: 5 days with range bars, air quality, update time ----
+        val days = w.days.take(5)
+        val lo = days.minOfOrNull { it.min } ?: 0.0
+        val hi = days.maxOfOrNull { it.max } ?: 1.0
+        rv.removeAllViews(R.id.daily)
+        days.forEachIndexed { i, d ->
+            val item = RemoteViews(pkg, R.layout.item_day)
+            val name = if (i == 0) "오늘" else try {
+                LocalDate.parse(d.date).dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREAN)
+            } catch (e: Exception) {
+                d.date.takeLast(5)
+            }
+            text(item, R.id.d_name, name, 13f)
+            item.setImageViewResource(R.id.d_icon, Wx.icon(d.code, true))
+            text(item, R.id.d_pop, if (d.pop >= 10) "${d.pop}%" else "", 11f)
+            item.setImageViewBitmap(R.id.d_range, rangeBar(d.min, d.max, lo, hi))
+            text(item, R.id.d_min, deg(d.min), 13f)
+            text(item, R.id.d_max, deg(d.max), 13f)
+            rv.addView(R.id.daily, item)
+        }
+        text(rv, R.id.aq10, w.pm10?.let { "미세먼지 ${it.roundToInt()} ${Wx.dust(it, true)}" } ?: "미세먼지 -", 12f)
+        text(rv, R.id.aq25, w.pm25?.let { "초미세먼지 ${it.roundToInt()} ${Wx.dust(it, false)}" } ?: "초미세먼지 -", 12f)
+        setMeter(rv, R.id.mameter, intArrayOf(R.id.ma1, R.id.ma2, R.id.ma3), Wx.dustStep(w.pm10, null))
+        setMeter(rv, R.id.mbmeter, intArrayOf(R.id.mb1, R.id.mb2, R.id.mb3), Wx.dustStep(null, w.pm25))
+        val time = SimpleDateFormat("HH:mm", Locale.KOREA).format(Date(w.fetchedAt))
+        text(rv, R.id.updated, "$time 업데이트", 10f)
         return rv
     }
 }

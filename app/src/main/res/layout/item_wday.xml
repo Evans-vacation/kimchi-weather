@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+    android:orientation="vertical" android:gravity="center_horizontal">
+    <TextView android:id="@+id/wd_name" android:shadowColor="#99000000" android:shadowRadius="4" android:shadowDy="1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="화" android:textColor="#DDFFFFFF" android:textSize="12sp" android:maxLines="1"/>
+    <ImageView android:id="@+id/wd_icon" android:layout_width="26dp" android:layout_height="26dp" android:layout_marginTop="2dp" android:src="@drawable/ic_w_clear_day"/>
+    <TextView android:id="@+id/wd_max" android:shadowColor="#99000000" android:shadowRadius="4" android:shadowDy="1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="--°" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" android:maxLines="1"/>
+    <TextView android:id="@+id/wd_min" android:shadowColor="#99000000" android:shadowRadius="4" android:shadowDy="1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="--°" android:textColor="#BBFFFFFF" android:textSize="11sp" android:maxLines="1"/>
+</LinearLayout>
