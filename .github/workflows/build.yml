@@ -1,5 +1,7 @@
 name: Build & Release APK
 
+# Every push to main builds a signed APK and publishes it as a GitHub Release.
+# The app on the phone checks the latest Release and updates itself.
 on:
   push:
     branches: [main, master]
@@ -32,12 +34,23 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > app/release.jks
 
       - name: Build release APK
+        env:
+          KMA_KEY: ${{ secrets.KMA_KEY }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon \
+          ./gradlew assembleGithubRelease assembleStoreRelease --no-daemon \
             -PversionCode=${{ github.run_number }} \
             -Prepo=${{ github.repository }}
-          cp app/build/outputs/apk/release/app-release.apk nalssi.apk
+          cp app/build/outputs/apk/github/release/app-github-release.apk nalssi.apk
+          cp app/build/outputs/apk/store/release/app-store-release.apk nalssi-galaxystore.apk
+
+      # 갤럭시 스토어용 APK (자동 업데이트 없음): Actions 실행 화면 맨 아래 Artifacts에서 받아요.
+      # Release에는 올리지 않아요 — 폰 앱이 실수로 스토어용을 받지 않도록.
+      - name: Upload Galaxy Store APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: galaxystore-apk
+          path: nalssi-galaxystore.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
