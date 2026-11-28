@@ -82,20 +82,45 @@ object WeatherRepo {
         } catch (e: Exception) {
             null
         }
+        val obs = try { Kma.now(place.lat, place.lon) } catch (e: Exception) { null }   // 기상청 실제 관측
+        val kfc = try { Kma.forecast(place.lat, place.lon) } catch (e: Exception) { emptyMap() }   // 기상청 예보
+        val kmid = try { Kma.mid(place.lat, place.lon) } catch (e: Exception) { emptyMap() }     // 기상청 중기예보
         val now = System.currentTimeMillis()
         ctx.getSharedPreferences(CACHE, Context.MODE_PRIVATE).edit()
-            .putString("fc", fcText).putString("aq", aqText).putLong("time", now).apply()
-        return parse(fcText, aqText, now)
+            .putString("fc", fcText).putString("aq", aqText).putLong("time", now)
+            .putString("kma", obs?.toJson()?.toString())
+            .putString("kmafc", if (kfc.isEmpty()) null else Kma.forecastJson(kfc).toString())
+            .putString("kmamid", if (kmid.isEmpty()) null else Kma.midJson(kmid).toString()).apply()
+        return parse(fcText, aqText, now, obs, kfc, kmid)
     }
 
     /** Last successful answer, or null. */
     fun cached(ctx: Context): Weather? {
         val p = ctx.getSharedPreferences(CACHE, Context.MODE_PRIVATE)
         val fc = p.getString("fc", null) ?: return null
-        return try { parse(fc, p.getString("aq", null), p.getLong("time", 0L)) } catch (e: Exception) { null }
+        val obs = try { p.getString("kma", null)?.let { Kma.Obs.fromJson(JSONObject(it)) } } catch (e: Exception) { null }
+        val kfc = try {
+            p.getString("kmafc", null)?.let { t ->
+                val o = JSONObject(t); val m = LinkedHashMap<String, Kma.Fc>()
+                for (k in o.keys()) { val f = o.getJSONObject(k)
+                    m[k] = Kma.Fc(if (f.isNull("t")) null else f.getDouble("t"), if (f.isNull("p")) null else f.getInt("p"), if (f.isNull("c")) null else f.getInt("c")) }
+                m
+            } ?: emptyMap()
+        } catch (e: Exception) { emptyMap() }
+        val kmid = try {
+            p.getString("kmamid", null)?.let { t ->
+                val o = JSONObject(t); val m = LinkedHashMap<String, Kma.MidDay>()
+                fun d(f: JSONObject, k: String) = if (f.isNull(k)) null else f.getDouble(k)
+                for (k in o.keys()) { val f = o.getJSONObject(k)
+                    m[k] = Kma.MidDay(d(f, "mn"), d(f, "mx"), d(f, "p")?.toInt(), d(f, "c")?.toInt()) }
+                m
+            } ?: emptyMap()
+        } catch (e: Exception) { emptyMap() }
+        return try { parse(fc, p.getString("aq", null), p.getLong("time", 0L), obs, kfc, kmid) } catch (e: Exception) { null }
     }
 
-    private fun parse(fcText: String, aqText: String?, fetchedAt: Long): Weather {
+    private fun parse(fcText: String, aqText: String?, fetchedAt: Long, obs: Kma.Obs? = null,
+                      kfc: Map<String, Kma.Fc> = emptyMap(), kmid: Map<String, Kma.MidDay> = emptyMap()): Weather {
         val fc = JSONObject(fcText)
         val cur = fc.getJSONObject("current")
         val curHour = cur.getString("time").take(13)
@@ -114,6 +139,11 @@ object WeatherRepo {
                 )
             )
         }
+        // 기상청 예보가 있는 시간은 기상청 값으로 (기온, 강수확률, 날씨)
+        if (kfc.isNotEmpty()) for (i in hours.indices) {
+            val f = kfc[hours[i].time.take(13) + ":00"] ?: continue
+            hours[i] = hours[i].copy(temp = f.temp ?: hours[i].temp, pop = f.pop ?: hours[i].pop, code = f.code ?: hours[i].code)
+        }
         val start = hours.indexOfFirst { it.time.take(13) == curHour }.coerceAtLeast(0)
 
         val d = fc.getJSONObject("daily")
@@ -131,6 +161,29 @@ object WeatherRepo {
             )
         }
 
+        // 기상청: 단기예보가 하루를 거의 다 덮는 날은 그 값으로, 그 뒤는 중기예보로. 기상청이 있으면 10일까지만.
+        if (kfc.isNotEmpty() || kmid.isNotEmpty()) {
+            for (i in 1 until days.size) {
+                val date = days[i].date
+                val hrs = (0..23).mapNotNull { kfc["${date}T%02d:00".format(it)] }
+                if (hrs.size >= 20) {
+                    val ts = hrs.mapNotNull { it.temp }; val ps = hrs.mapNotNull { it.pop }
+                    val dayCodes = (9..18).mapNotNull { kfc["${date}T%02d:00".format(it)]?.code }
+                    val wet = dayCodes.filter { it >= 51 }
+                    days[i] = days[i].copy(
+                        max = ts.maxOrNull() ?: days[i].max, min = ts.minOrNull() ?: days[i].min,
+                        pop = ps.maxOrNull() ?: days[i].pop,
+                        code = if (wet.size >= 2) wet.max() else dayCodes.maxOrNull() ?: days[i].code)
+                    continue
+                }
+                val m = kmid[date] ?: continue
+                days[i] = days[i].copy(max = m.max ?: days[i].max, min = m.min ?: days[i].min,
+                    pop = m.pop ?: days[i].pop, code = m.code ?: days[i].code)
+            }
+            val last = kmid.keys.maxOrNull()
+            if (last != null) days.retainAll { it.date <= last }
+        }
+
         var pm10: Double? = null
         var pm25: Double? = null
         try {
@@ -141,10 +194,12 @@ object WeatherRepo {
             // air quality is optional
         }
 
+        val modelTemp = cur.getDouble("temperature_2m")
+        val temp = obs?.temp ?: modelTemp
         return Weather(
-            temp = cur.getDouble("temperature_2m"),
-            feels = cur.getDouble("apparent_temperature"),
-            code = cur.getInt("weather_code"),
+            temp = temp,
+            feels = cur.getDouble("apparent_temperature") + (temp - modelTemp),   // keep the model's wind-chill gap
+            code = if (obs != null) Kma.correctCode(cur.getInt("weather_code"), obs.pty) else cur.getInt("weather_code"),
             isDay = cur.optInt("is_day", 1) == 1,
             hours = hours.drop(start),
             days = days,

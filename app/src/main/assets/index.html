@@ -707,7 +707,7 @@ async function fetchPlace(p, force){
   return (wxCache[k] = {t: Date.now(), w, aq: aq && aq.current ? aq : null});
 }
 async function loadPlace(p, force){
-  state.place = p; store.set('place', p); state.past = null; state.daysAll = false;
+  state.place = p; store.set('place', p); state.past = null; state.daysAll = false; state.obs = null; state.kfc = 0; state.kfcMap = null; state.midMap = null;
   try{ if (window.Android) window.Android.setPlace(JSON.stringify(Object.assign({}, p, {theme: sceneTheme(p)}))); }catch(e){}
   $('#hero').classList.add('loading'); $('#place').innerHTML = esc(p.name) + ' <small>불러오는 중…</small>'; renderDots();
   markChips();
@@ -720,6 +720,114 @@ async function loadPlace(p, force){
   render();
   radarFor(p);
   prefetchNeighbours();
+  kmaFor(p);
+  kmaFcFor(p);
+  kmaMidFor(p);
+}
+
+/* ---------- 기상청 초단기실황: real observations for "지금" (phone app only — the key lives in the app) ---------- */
+const kmaWaiting = {};
+window.__kmaDone = (id, json) => { const f = kmaWaiting[id]; delete kmaWaiting[id]; if (f) f(json ? JSON.parse(json) : null); };
+function kmaCorrect(model, pty){
+  const wet = (model >= 51 && model <= 67) || (model >= 71 && model <= 77) || (model >= 80 && model <= 86) || model >= 95;
+  if (pty === 0) return wet ? 3 : model;
+  if (pty === 1) return (model >= 61 && model <= 65) || (model >= 80 && model <= 82) || model >= 95 ? model : 61;
+  if (pty === 2 || pty === 6) return 66;
+  if (pty === 3) return (model >= 71 && model <= 77) || model === 85 || model === 86 ? model : 73;
+  if (pty === 5) return model >= 51 && model <= 57 ? model : 51;
+  if (pty === 7) return 71;
+  return model;
+}
+function kmaFor(p){
+  if (!(window.Android && window.Android.kmaNow) || state.demo) return;
+  if (!(p.lat > 32.8 && p.lat < 38.9 && p.lon > 124.2 && p.lon < 131.9)) return;
+  const id = 'k' + Date.now();
+  kmaWaiting[id] = o => {
+    if (!o || state.place !== p || !state.data) return;
+    const d = state.data, c = d.current;
+    if (!c._model) c._model = {t: c.temperature_2m, f: c.apparent_temperature, code: c.weather_code, reh: c.relative_humidity_2m,
+      wsd: c.wind_speed_10m, vec: c.wind_direction_10m, rn: c.precipitation};
+    const m = c._model;
+    if (o.temp != null){ c.temperature_2m = o.temp; c.apparent_temperature = m.f + (o.temp - m.t); }
+    c.weather_code = kmaCorrect(m.code, o.pty);
+    if (o.reh != null) c.relative_humidity_2m = o.reh;
+    if (o.wsd != null) c.wind_speed_10m = o.wsd;
+    if (o.vec != null) c.wind_direction_10m = o.vec;
+    if (o.rn1 != null) c.precipitation = o.rn1;
+    const h = d.hourly, s0 = h.time.findIndex(t => t.slice(0,13) === c.time.slice(0,13));
+    if (s0 >= 0){ if (h._code0 == null) h._code0 = h._orig ? h._orig.c[s0] : h.weather_code[s0]; h.weather_code[s0] = kmaCorrect(h._code0, o.pty); if (o.temp != null) h.temperature_2m[s0] = o.temp; }
+    state.obs = o; render();
+  };
+  setTimeout(() => { if (kmaWaiting[id]){ delete kmaWaiting[id]; } }, 12000);
+  try{ window.Android.kmaNow(p.lat, p.lon, id); }catch(e){ delete kmaWaiting[id]; }
+}
+/* Days: 단기예보 where it covers (almost) the whole day, then 중기예보; with 기상청 data the list ends at its last day (10일). */
+function applyKmaDays(){
+  const d = state.data; if (!d) return;
+  const dl = d.daily, m = state.kfcMap || {}, mid = state.midMap || {};
+  const keys = ['time','weather_code','temperature_2m_max','temperature_2m_min','precipitation_probability_max','sunrise','sunset','uv_index_max'];
+  if (!dl._orig) dl._orig = {};
+  keys.forEach(k => { if (dl[k] && !dl._orig[k]) dl._orig[k] = dl[k].slice(); });
+  keys.forEach(k => { if (dl._orig[k]) dl[k] = dl._orig[k].slice(); });
+  dl.time.forEach((day, di) => {
+    if (di === 0) return;   // today: past hours aren't in the forecast
+    const ks = Array.from({length: 24}, (_, hh) => `${day}T${String(hh).padStart(2,'0')}:00`).filter(k => m[k]);
+    if (ks.length >= 20){
+      const ts = ks.map(k => m[k].t).filter(v => v != null), ps = ks.map(k => m[k].p).filter(v => v != null);
+      if (ts.length){ dl.temperature_2m_max[di] = Math.max(...ts); dl.temperature_2m_min[di] = Math.min(...ts); }
+      if (ps.length) dl.precipitation_probability_max[di] = Math.max(...ps);
+      const day9 = ks.filter(k => +k.slice(11,13) >= 9 && +k.slice(11,13) <= 18).map(k => m[k].c).filter(v => v != null);
+      const wet = day9.filter(c => c >= 51);
+      if (day9.length) dl.weather_code[di] = wet.length >= 2 ? Math.max(...wet) : Math.max(...day9);
+      return;
+    }
+    const x = mid[day]; if (!x) return;
+    if (x.mx != null) dl.temperature_2m_max[di] = x.mx;
+    if (x.mn != null) dl.temperature_2m_min[di] = x.mn;
+    if (x.p != null) dl.precipitation_probability_max[di] = x.p;
+    if (x.c != null) dl.weather_code[di] = x.c;
+  });
+  const last = Object.keys(mid).sort().pop();
+  if (last){ const n = dl.time.filter(t => t <= last).length; keys.forEach(k => { if (dl[k]) dl[k] = dl[k].slice(0, n); }); }
+}
+window.__kmaMidDone = (id, json) => { const f = kmaWaiting[id]; delete kmaWaiting[id]; if (f) f(json ? JSON.parse(json) : null); };
+function kmaMidFor(p){
+  if (!(window.Android && window.Android.kmaMid) || state.demo) return;
+  if (!(p.lat > 32.8 && p.lat < 38.9 && p.lon > 124.2 && p.lon < 131.9)) return;
+  const id = 'm' + Date.now();
+  kmaWaiting[id] = m => { if (!m || state.place !== p || !state.data) return; state.midMap = m; applyKmaDays(); render(); };
+  setTimeout(() => { if (kmaWaiting[id]){ delete kmaWaiting[id]; } }, 20000);
+  try{ window.Android.kmaMid(p.lat, p.lon, id); }catch(e){ delete kmaWaiting[id]; }
+}
+/* 기상청 초단기·단기예보 → hourly (and days the forecast fully covers) */
+window.__kmaFcDone = (id, json) => { const f = kmaWaiting[id]; delete kmaWaiting[id]; if (f) f(json ? JSON.parse(json) : null); };
+function kmaFcFor(p){
+  if (!(window.Android && window.Android.kmaForecast) || state.demo) return;
+  if (!(p.lat > 32.8 && p.lat < 38.9 && p.lon > 124.2 && p.lon < 131.9)) return;
+  const id = 'f' + Date.now();
+  kmaWaiting[id] = m => {
+    if (!m || state.place !== p || !state.data) return;
+    const d = state.data, h = d.hourly, dl = d.daily;
+    if (!h._orig) h._orig = {t: h.temperature_2m.slice(), p: h.precipitation_probability.slice(), c: h.weather_code.slice()};
+    const o = h._orig, cur = d.current.time.slice(0,13);
+    let n = 0;
+    h.time.forEach((t, i) => {
+      const f = m[t.slice(0,13) + ':00'];
+      if (!f || t.slice(0,13) < cur){ return; }
+      if (f.t != null) h.temperature_2m[i] = f.t; else h.temperature_2m[i] = o.t[i];
+      h.precipitation_probability[i] = f.p != null ? f.p : o.p[i];
+      h.weather_code[i] = f.c != null ? f.c : o.c[i];
+      n++;
+    });
+    state.kfcMap = m; applyKmaDays();
+    if (state.obs){   // keep "지금" on the observation
+      const s0 = h.time.findIndex(t => t.slice(0,13) === cur);
+      if (s0 >= 0){ h.weather_code[s0] = kmaCorrect(o.c[s0], state.obs.pty); if (state.obs.temp != null) h.temperature_2m[s0] = state.obs.temp; }
+    }
+    state.kfc = n; render();
+  };
+  setTimeout(() => { if (kmaWaiting[id]){ delete kmaWaiting[id]; } }, 20000);
+  try{ window.Android.kmaForecast(p.lat, p.lon, id); }catch(e){ delete kmaWaiting[id]; }
 }
 
 /* ---------- render ---------- */
@@ -756,6 +864,9 @@ function render(){
   document.title = `${p.name} ${deg(c.temperature_2m)} ${label}`;
   renderAir(); renderHours(d); renderDays(d); renderDetails(d);
   $('#foot').innerHTML = `날씨 데이터: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> · 행정동 위치: <a href="https://github.com/vuski/admdongkor" target="_blank" rel="noopener">admdongkor</a> · 해외 도시 위치: <a href="https://www.geonames.org" target="_blank" rel="noopener">GeoNames</a>` +
+    (state.obs ? ` · 지금 날씨: <a href="https://www.kma.go.kr" target="_blank" rel="noopener">기상청</a> 관측 (${state.obs.base.slice(8,10)}시)` : '') +
+    (state.kfc ? ` · 시간별 예보 ${state.kfc}시간: 기상청 동네예보` : '') +
+    (state.midMap ? ' · 4~10일: 기상청 중기예보' : '') +
     (state.demo ? ' · 예시 데이터' : ` · ${esc(hhmm(c.time))} 기준 (현지 시각)`);
 }
 

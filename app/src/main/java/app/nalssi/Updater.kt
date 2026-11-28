@@ -43,9 +43,11 @@ object Updater {
             val code = tag.substringAfterLast('.').toIntOrNull() ?: return null
             if (code <= BuildConfig.VERSION_CODE) return null
             val assets = j.optJSONArray("assets") ?: return null
-            for (i in 0 until assets.length()) {
+            // prefer nalssi.apk (the self-updating build); any other .apk only as a fallback
+            val order = (0 until assets.length()).sortedBy { if (assets.getJSONObject(it).optString("name") == "nalssi.apk") 0 else 1 }
+            for (i in order) {
                 val a = assets.getJSONObject(i)
-                if (a.optString("name").endsWith(".apk")) {
+                if (a.optString("name").endsWith(".apk") && !a.optString("name").contains("store")) {
                     return Release(code, j.optString("name", tag), a.getString("browser_download_url"), j.optString("body", ""))
                 }
             }
@@ -87,6 +89,7 @@ object Updater {
 
     /** Called from the widget refresh thread. Silent only; never interrupts the user. */
     fun maybeUpdateInBackground(ctx: Context) {
+        if (BuildConfig.UPDATE_REPO.isBlank()) return      // Galaxy Store build: the store updates the app
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()

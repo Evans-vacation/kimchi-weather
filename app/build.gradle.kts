@@ -6,6 +6,8 @@ plugins {
 // GitHub Actions passes these: -PversionCode=<run number> -Prepo=<owner/repo>
 val appVersionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
 val updateRepo = (project.findProperty("repo") as String?) ?: ""
+// 기상청 API허브 인증키 (GitHub secret KMA_KEY). Empty → the app just uses Open-Meteo.
+val kmaKey = ((project.findProperty("kmaKey") as String?) ?: System.getenv("KMA_KEY") ?: "").trim().filter { it.isLetterOrDigit() || it == '_' || it == '-' }
 val releaseKey = file("release.jks")
 // Project version shown on the phone (설정 → 애플리케이션 → 날씨). Edit version.properties to change it.
 val projectVersion = rootProject.file("version.properties").takeIf { it.exists() }
@@ -22,8 +24,20 @@ android {
         versionCode = appVersionCode
         versionName = projectVersion
         buildConfigField("String", "UPDATE_REPO", "\"$updateRepo\"")
+        buildConfigField("String", "KMA_KEY", "\"$kmaKey\"")
     }
     buildFeatures { buildConfig = true }
+
+    // github: my phone, updates itself from GitHub Releases.
+    // store:  Galaxy Store build — no self-update, no install-packages permission (the store updates it).
+    flavorDimensions += "dist"
+    productFlavors {
+        create("github") { dimension = "dist" }
+        create("store") {
+            dimension = "dist"
+            buildConfigField("String", "UPDATE_REPO", "\"\"")
+        }
+    }
 
     signingConfigs {
         create("release") {

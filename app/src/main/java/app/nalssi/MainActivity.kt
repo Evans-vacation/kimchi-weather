@@ -258,6 +258,39 @@ class MainActivity : Activity() {
             }.start()
         }
 
+        /** 기상청 초단기실황 for the page. Async: window.__kmaDone(id, json|null). */
+        @JavascriptInterface
+        fun kmaNow(lat: Double, lon: Double, id: String) {
+            Thread {
+                val obs = try { Kma.now(lat, lon) } catch (e: Exception) { null }
+                val payload = if (obs == null) "null" else JSONObject.quote(obs.toJson().toString())
+                val js = "window.__kmaDone && window.__kmaDone(${JSONObject.quote(id)}, $payload)"
+                web.post { web.evaluateJavascript(js, null) }
+            }.start()
+        }
+
+        /** 기상청 중기예보 for the page. Async: window.__kmaMidDone(id, json|null). */
+        @JavascriptInterface
+        fun kmaMid(lat: Double, lon: Double, id: String) {
+            Thread {
+                val m = try { Kma.mid(lat, lon) } catch (e: Exception) { emptyMap() }
+                val payload = if (m.isEmpty()) "null" else JSONObject.quote(Kma.midJson(m).toString())
+                val js = "window.__kmaMidDone && window.__kmaMidDone(${JSONObject.quote(id)}, $payload)"
+                web.post { web.evaluateJavascript(js, null) }
+            }.start()
+        }
+
+        /** 기상청 초단기·단기예보 for the page. Async: window.__kmaFcDone(id, json|null). */
+        @JavascriptInterface
+        fun kmaForecast(lat: Double, lon: Double, id: String) {
+            Thread {
+                val m = try { Kma.forecast(lat, lon) } catch (e: Exception) { emptyMap() }
+                val payload = if (m.isEmpty()) "null" else JSONObject.quote(Kma.forecastJson(m).toString())
+                val js = "window.__kmaFcDone && window.__kmaFcDone(${JSONObject.quote(id)}, $payload)"
+                web.post { web.evaluateJavascript(js, null) }
+            }.start()
+        }
+
         @JavascriptInterface
         fun setPlace(json: String) {
             try {
